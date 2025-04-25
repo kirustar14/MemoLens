@@ -1,0 +1,180 @@
+/* Root layout */
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(to bottom, #e0f7fa, #ffffff);
+  color: #333;
+}
+
+/* Main container */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  box-sizing: border-box;
+}
+
+/* Header */
+.app h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #26A69A;
+  margin-bottom: 48px;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Layout Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  max-width: 1100px;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* Card Box */
+.card {
+  background: #ffffff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Titles */
+.card h2 {
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="file"] {
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+input[type="text"]:focus {
+  border-color: #26A69A;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(38, 166, 154, 0.2);
+}
+
+/* Buttons */
+button {
+  display: inline-block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:focus {
+  outline: none;
+}
+
+button.submit {
+  background-color: #26A69A;
+  color: white;
+}
+
+button.submit:hover {
+  background-color: #1e9087;
+}
+
+button.recognize {
+  background-color: #2196f3;
+  color: white;
+}
+
+button.recognize:hover {
+  background-color: #1976d2;
+}
+
+button.delete {
+  background: none;
+  color: #e53935;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  border: none;
+  cursor: pointer;
+}
+
+/* Result display */
+.result {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+/* Contact list carousel */
+ul.contact-list {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+  scroll-snap-type: x mandatory;
+}
+
+ul.contact-list::-webkit-scrollbar {
+  display: none;
+}
+ul.contact-list {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.contact-card {
+  background-color: #f3f4f6;
+  padding: 10px 16px;
+  border-radius: 12px;
+  min-width: 180px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  scroll-snap-align: start;
+  transition: background-color 0.2s ease;
+}
+
+.contact-card:hover {
+  background-color: #e5e7eb;
+}
+
+.contact-empty {
+  font-style: italic;
+  color: #999;
+  padding: 8px;
+}
