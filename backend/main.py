@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, APIRouter
+from fastapi import FastAPI, UploadFile, File, Form, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
@@ -14,7 +14,7 @@ import tempfile
 import os
 from pydantic import BaseModel
 from typing import Optional
-from fastapi import Body
+import requests
 
 
 
@@ -160,35 +160,51 @@ async def transcribe_audio(file: UploadFile = File(...)):
     
     return {"transcription": transcription}
 
+# Define the ReminderParsed class to represent parsed reminder data
 class ReminderParsed(BaseModel):
     title: str
     time: Optional[str] = None
     location: Optional[str] = None
 
+# Define a function to get a summary of the transcription using Hugging Face
+def summarize_text(text: str) -> str:
+    headers = {"Authorization": "Bearer APIKEY"}
+    payload = {
+        "inputs": text,
+    }
+    response = requests.post("https://api-inference.huggingface.co/models/t5-base", headers=headers, json=payload)
+    
+    print("Hugging Face Response:", response.json())
+    
+    if response.status_code == 200 and 'summary_text' in response.json()[0]:
+        return response.json()[0]['summary_text']
+    else:
+        return "Error summarizing text"
 @app.post("/audio/parse")
 async def parse_audio(input_data: dict = Body(...)):
     transcription = input_data.get("transcription", "")
+    
+    # Summarize the transcription for the title using the new model
+    title = summarize_text(transcription)
+
     doc = nlp(transcription)
 
-    # Extract date/time
+    # Extract datetime
     datetime = None
     for ent in doc.ents:
         if ent.label_ in ["DATE", "TIME"]:
             parsed = dateparser.parse(ent.text)
             if parsed:
-                datetime = parsed.strftime("%I:%M %p")  # format as 06:00 PM
+                datetime = parsed.strftime("%I:%M %p")
                 break
 
-    # Extract location (basic heuristic)
+    # Extract location (get full entity or noun chunk after 'at' or 'in')
     location = None
-    for token in doc:
-        if token.text.lower() in ["at", "in"] and token.nbor(1).ent_type_ == "":
-            location = token.nbor(1).text
+    for i, token in enumerate(doc):
+        if token.text.lower() in ["at", "in"] and i + 1 < len(doc):
+            next_chunk = doc[i+1 : i+4]  # try grabbing next few tokens
+            location = " ".join([t.text for t in next_chunk if t.pos_ in ["PROPN", "NOUN", "ADJ"]])
             break
-
-    # Extract title from remaining text (remove common prefixes)
-    filtered_words = [t.text for t in doc if t.pos_ in ["NOUN", "PROPN"] and t.text.lower() not in ["hey", "remind", "me"]]
-    title = " ".join(filtered_words).title() or "Reminder"
 
     return {
         "parsed": ReminderParsed(title=title, time=datetime, location=location).dict()
