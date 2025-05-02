@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 import os
 import shutil
 import uuid
-import face_recognition
+#import face_recognition 
 import pickle
 
 app = FastAPI()
@@ -78,6 +78,25 @@ async def recognize(file: UploadFile = File(...)):
             return {"result": model_file.replace(".pkl", "")}
 
     return {"result": "Unknown"}
+
+
+users = {}  
+
+@app.post("/signup/")
+async def signup(username: str = Form(...), password: str = Form(...)):
+    if username in users:
+        return JSONResponse(content={"error": "User already exists"}, status_code=400)
+    users[username] = password
+    return {"message": "User created successfully"}
+
+
+
+@app.post("/login/")
+async def login(username: str = Form(...), password: str = Form(...)):
+    if users.get(username) == password:
+        return {"access_token": "dummy-token-for-" + username}
+    return JSONResponse(content={"error": "Invalid credentials"}, status_code=401)
+
 
 @app.delete("/contacts/{name}")
 def delete_contact(name: str):

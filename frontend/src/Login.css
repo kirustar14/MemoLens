@@ -1,0 +1,101 @@
+.login-page {
+    display: flex;
+    height: 100vh;
+    background: #e6f4f1;
+    justify-content: center;
+    align-items: center;
+    gap: 80px;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .welcome-section {
+    text-align: right;
+  }
+  
+  .welcome-section h1 {
+    font-size: 40px;
+    color: #00a68f;
+  }
+  
+  .welcome-section p {
+    font-size: 16px;
+    color: #555;
+  }
+  
+  .login-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .icon-circle {
+    background: #e0f7f4;
+    border-radius: 50%;
+    padding: 12px;
+    margin-bottom: 15px;
+  }
+  
+  .user-image {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+  
+  .login-card h2 {
+    color: #008c7e;
+    margin-bottom: 25px;
+    font-size: 20px;
+  }
+  
+  .login-card input {
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+  
+  .options {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 20px;
+    color: #666;
+  }
+  
+  .forgot {
+    color: #007bff;
+    cursor: pointer;
+  }
+  
+  .login-button {
+    width: 100%;
+    padding: 10px 0;
+    background: linear-gradient(90deg, #00a68f, #00c3b1);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 15px;
+  }
+  
+  .signup-redirect {
+    font-size: 13px;
+    color: #555;
+  }
+  
+  .create-account {
+    color: #00a68f;
+    font-weight: bold;
+    margin-left: 5px;
+    cursor: pointer;
+  }
+  
