@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 
@@ -8,6 +8,64 @@ export default function App() {
   const [addImage, setAddImage] = useState<File | null>(null);
   const [recognizeImage, setRecognizeImage] = useState<File | null>(null);
   const [result, setResult] = useState<string | null>(null);
+
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [transcription, setTranscription] = useState<string | null>(null);
+  const [parsedDates, setParsedDates] = useState<string[]>([]);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const handleStartRecording = () => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        const file = new File([audioBlob], "audio.wav", { type: "audio/wav" });
+        setAudioFile(file);
+      };
+
+      mediaRecorder.start();
+    }).catch((err) => {
+      console.error("Error accessing audio", err);
+    });
+  };
+
+  const handleStopRecording = () => {
+    mediaRecorderRef.current?.stop();
+  };
+
+  const handleTranscribe = async () => {
+    if (!audioFile) return;
+
+    const formData = new FormData();
+    formData.append("file", audioFile);
+
+    try {
+      const transcriptionRes = await axios.post("http://127.0.0.1:8000/audio/transcribe", formData);
+      setTranscription(transcriptionRes.data.transcription);
+
+      const parseRes = await axios.post("http://127.0.0.1:8000/audio/parse", {
+        transcription: transcriptionRes.data.transcription,
+      });
+      setParsedDates(parseRes.data.parsed_dates);
+    } catch (err) {
+      console.error("Transcription failed", err);
+    }
+  };
+
+  const handleDeleteRecording = () => {
+    setAudioFile(null);
+    setTranscription(null);
+    setParsedDates([]);
+  };
 
   useEffect(() => {
     fetchContacts();
@@ -129,6 +187,42 @@ export default function App() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Voice Section */}
+      <h1>Voice Recognition</h1>
+      <div className="card">
+        <div className="button-row">
+          <button onClick={handleStartRecording} className="start">
+            Start Recording
+          </button>
+          <button onClick={handleStopRecording} className="stop">
+            Stop Recording
+          </button>
+          <button onClick={handleTranscribe} className="transcribe" disabled={!audioFile}>
+            Transcribe
+          </button>
+          <button onClick={handleDeleteRecording} className="delete">
+            Clear
+          </button>
+        </div>
+
+        {transcription && (
+          <div className="result">
+            <h3>Transcription:</h3>
+            <p>{transcription}</p>
+          </div>
+        )}
+        {parsedDates.length > 0 && (
+          <div className="result">
+            <h3>Parsed Dates:</h3>
+            <ul>
+              {parsedDates.map((date, index) => (
+                <li key={index}>{date}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

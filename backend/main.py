@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
@@ -7,6 +7,14 @@ import os
 import uuid
 import face_recognition
 import pickle
+import whisper  
+import spacy
+import dateparser
+import tempfile
+import os
+from pydantic import BaseModel
+
+
 
 app = FastAPI()
 
@@ -121,3 +129,50 @@ def delete_contact(id: str):
         return {"message": f"{id} deleted"}
     else:
         return JSONResponse(content={"error": "Contact not found"}, status_code=404)
+
+
+# Create a new router for voice recognition
+router = APIRouter()
+
+# Initialize Whisper model for transcription
+whisper_model = whisper.load_model("base")
+
+# NLP setup
+nlp = spacy.load("en_core_web_sm")
+
+class TranscriptionResult(BaseModel):
+    transcription: str
+    parsed_date: str
+
+# Endpoint to record and transcribe audio
+@app.post("/audio/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    contents = await file.read()
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(contents)
+        temp_file_path = temp_file.name
+    
+    result = whisper_model.transcribe(temp_file_path)
+    transcription = result['text']
+    os.remove(temp_file_path)
+    
+    return {"transcription": transcription}
+
+# Endpoint to parse the transcription for dates
+@app.post("/audio/parse")
+async def parse_audio(input_data: dict):
+    transcription = input_data.get("transcription", "")
+    doc = nlp(transcription)
+    dates = [ent.text for ent in doc.ents if ent.label_ == "DATE"]
+    
+    parsed_dates = []
+    for date in dates:
+        parsed = dateparser.parse(date)
+        if parsed:
+            parsed_dates.append(parsed.isoformat())
+    
+    return {"parsed_dates": parsed_dates}
+
+
+# Include the new router
+app.include_router(router)
