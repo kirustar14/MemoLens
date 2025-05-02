@@ -11,7 +11,11 @@ export default function App() {
 
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
-  const [parsedDates, setParsedDates] = useState<string[]>([]);
+
+  const [parsedReminder, setParsedReminder] = useState<null | {
+    title: string;
+    time?: string;
+    location?: string; }>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -55,7 +59,9 @@ export default function App() {
       const parseRes = await axios.post("http://127.0.0.1:8000/audio/parse", {
         transcription: transcriptionRes.data.transcription,
       });
-      setParsedDates(parseRes.data.parsed_dates);
+      setParsedReminder(parseRes.data.parsed);
+
+
     } catch (err) {
       console.error("Transcription failed", err);
     }
@@ -64,7 +70,7 @@ export default function App() {
   const handleDeleteRecording = () => {
     setAudioFile(null);
     setTranscription(null);
-    setParsedDates([]);
+    setParsedReminder(null);
   };
 
   useEffect(() => {
@@ -213,14 +219,12 @@ export default function App() {
             <p>{transcription}</p>
           </div>
         )}
-        {parsedDates.length > 0 && (
-          <div className="result">
-            <h3>Parsed Dates:</h3>
-            <ul>
-              {parsedDates.map((date, index) => (
-                <li key={index}>{date}</li>
-              ))}
-            </ul>
+        {parsedReminder && (
+          <div className="card">
+            <h3 style={{ marginBottom: "0.5rem" }}>Parsed Reminder</h3>
+            <p><strong>Title:</strong> {parsedReminder.title}</p>
+            {parsedReminder.time && <p><strong>Time:</strong> {parsedReminder.time}</p>}
+            {parsedReminder.location && <p><strong>Location:</strong> {parsedReminder.location}</p>}
           </div>
         )}
       </div>

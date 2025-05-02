@@ -13,6 +13,8 @@ import dateparser
 import tempfile
 import os
 from pydantic import BaseModel
+from typing import Optional
+from fastapi import Body
 
 
 
@@ -158,21 +160,39 @@ async def transcribe_audio(file: UploadFile = File(...)):
     
     return {"transcription": transcription}
 
-# Endpoint to parse the transcription for dates
+class ReminderParsed(BaseModel):
+    title: str
+    time: Optional[str] = None
+    location: Optional[str] = None
+
 @app.post("/audio/parse")
-async def parse_audio(input_data: dict):
+async def parse_audio(input_data: dict = Body(...)):
     transcription = input_data.get("transcription", "")
     doc = nlp(transcription)
-    dates = [ent.text for ent in doc.ents if ent.label_ == "DATE"]
-    
-    parsed_dates = []
-    for date in dates:
-        parsed = dateparser.parse(date)
-        if parsed:
-            parsed_dates.append(parsed.isoformat())
-    
-    return {"parsed_dates": parsed_dates}
 
+    # Extract date/time
+    datetime = None
+    for ent in doc.ents:
+        if ent.label_ in ["DATE", "TIME"]:
+            parsed = dateparser.parse(ent.text)
+            if parsed:
+                datetime = parsed.strftime("%I:%M %p")  # format as 06:00 PM
+                break
+
+    # Extract location (basic heuristic)
+    location = None
+    for token in doc:
+        if token.text.lower() in ["at", "in"] and token.nbor(1).ent_type_ == "":
+            location = token.nbor(1).text
+            break
+
+    # Extract title from remaining text (remove common prefixes)
+    filtered_words = [t.text for t in doc if t.pos_ in ["NOUN", "PROPN"] and t.text.lower() not in ["hey", "remind", "me"]]
+    title = " ".join(filtered_words).title() or "Reminder"
+
+    return {
+        "parsed": ReminderParsed(title=title, time=datetime, location=location).dict()
+    }
 
 # Include the new router
 app.include_router(router)
