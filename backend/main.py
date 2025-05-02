@@ -2,18 +2,17 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
+from fastapi import HTTPException
 import os
-import shutil
 import uuid
 import face_recognition
 import pickle
 
 app = FastAPI()
 
-# Allow frontend to talk to backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can restrict this in prod
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,8 +24,9 @@ MODELS_DIR = "models"
 os.makedirs(CONTACTS_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-@app.post("/add_contact/")
-async def add_contact(name: str = Form(...), file: UploadFile = File(...)):
+# Face Upload → Add Contact (associate image)
+@app.post("/face/upload")
+async def upload_face(name: str = Form(...), file: UploadFile = File(...)):
     contents = await file.read()
     img_path = f"{CONTACTS_DIR}/{name}_{uuid.uuid4().hex}.jpg"
 
@@ -46,14 +46,9 @@ async def add_contact(name: str = Form(...), file: UploadFile = File(...)):
 
     return {"message": "Contact added successfully"}
 
-@app.get("/contacts/")
-def list_contacts():
-    files = os.listdir(MODELS_DIR)
-    names = [f.replace(".pkl", "") for f in files if f.endswith(".pkl")]
-    return {"contacts": names}
-
-@app.post("/recognize/")
-async def recognize(file: UploadFile = File(...)):
+# Face Recognize → Match image against contacts
+@app.post("/face/recognize")
+async def recognize_face(file: UploadFile = File(...)):
     contents = await file.read()
     temp_file = f"temp_{uuid.uuid4().hex}.jpg"
     with open(temp_file, "wb") as f:
@@ -79,15 +74,50 @@ async def recognize(file: UploadFile = File(...)):
 
     return {"result": "Unknown"}
 
-@app.delete("/contacts/{name}")
-def delete_contact(name: str):
-    model_path = f"{MODELS_DIR}/{name}.pkl"
+# Get face encodings for a contact
+@app.get("/face/contact/{id}")
+def get_face_data(id: str):
+    model_path = f"{MODELS_DIR}/{id}.pkl"
+    if not os.path.exists(model_path):
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    with open(model_path, "rb") as f:
+        encoding = pickle.load(f)
+
+    images = [f for f in os.listdir(CONTACTS_DIR) if f.startswith(id)]
+    return {"encodings": encoding.tolist(), "images": images}
+
+# Create new contact
+@app.post("/contacts")
+async def create_contact(name: str = Form(...), file: UploadFile = File(...)):
+    return await upload_face(name, file)
+
+# Get all contacts
+@app.get("/contacts")
+def get_contacts():
+    files = os.listdir(MODELS_DIR)
+    names = [f.replace(".pkl", "") for f in files if f.endswith(".pkl")]
+    return {"contacts": names}
+
+# Get specific contact
+@app.get("/contacts/{id}")
+def get_contact(id: str):
+    return get_face_data(id)
+
+# Edit contact — reupload face
+@app.put("/contacts/{id}")
+async def edit_contact(id: str, file: UploadFile = File(...)):
+    return await upload_face(id, file)
+
+# Delete contact
+@app.delete("/contacts/{id}")
+def delete_contact(id: str):
+    model_path = f"{MODELS_DIR}/{id}.pkl"
     for file in os.listdir(CONTACTS_DIR):
-        if file.startswith(name):
+        if file.startswith(id):
             os.remove(os.path.join(CONTACTS_DIR, file))
     if os.path.exists(model_path):
         os.remove(model_path)
-        return {"message": f"{name} deleted"}
+        return {"message": f"{id} deleted"}
     else:
         return JSONResponse(content={"error": "Contact not found"}, status_code=404)
-

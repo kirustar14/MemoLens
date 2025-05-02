@@ -15,7 +15,7 @@ export default function App() {
 
   const fetchContacts = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/contacts/");
+      const res = await axios.get("http://127.0.0.1:8000/contacts");
       setContacts(res.data.contacts);
     } catch (err) {
       console.error("Failed to fetch contacts", err);
@@ -30,7 +30,7 @@ export default function App() {
     formData.append("file", addImage);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/add_contact/", formData);
+      const res = await axios.post("http://127.0.0.1:8000/contacts", formData);
       if (res.data.message === "Contact added successfully") {
         setName("");
         setAddImage(null);
@@ -50,7 +50,7 @@ export default function App() {
     formData.append("file", recognizeImage);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/recognize/", formData);
+      const res = await axios.post("http://127.0.0.1:8000/face/recognize", formData);
       setResult(res.data.result);
     } catch (err) {
       alert("Recognition failed");
@@ -92,7 +92,7 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contact List Carousel */}
+          {/* Contact List */}
           <div className="card">
             <h2 style={{ color: "#555" }}>Contacts</h2>
             <ul className="contact-list">
@@ -102,10 +102,7 @@ export default function App() {
                 contacts.map((c) => (
                   <li key={c} className="contact-card">
                     <span>{c}</span>
-                    <button
-                      onClick={() => handleDelete(c)}
-                      className="delete"
-                    >
+                    <button onClick={() => handleDelete(c)} className="delete">
                       Delete
                     </button>
                   </li>
