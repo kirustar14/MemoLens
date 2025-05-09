@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 import Homepage from './components/Homepage';  //New what added for homepage
@@ -14,13 +14,77 @@ export default function App() {
   const [recognizeImage, setRecognizeImage] = useState<File | null>(null);
   const [result, setResult] = useState<string | null>(null);
 
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [transcription, setTranscription] = useState<string | null>(null);
+
+  const [parsedReminder, setParsedReminder] = useState<null | {
+    title: string;
+    time?: string;
+    location?: string; }>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const handleStartRecording = () => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        const file = new File([audioBlob], "audio.wav", { type: "audio/wav" });
+        setAudioFile(file);
+      };
+
+      mediaRecorder.start();
+    }).catch((err) => {
+      console.error("Error accessing audio", err);
+    });
+  };
+
+  const handleStopRecording = () => {
+    mediaRecorderRef.current?.stop();
+  };
+
+  const handleTranscribe = async () => {
+    if (!audioFile) return;
+
+    const formData = new FormData();
+    formData.append("file", audioFile);
+
+    try {
+      const transcriptionRes = await axios.post("http://127.0.0.1:8000/audio/transcribe", formData);
+      setTranscription(transcriptionRes.data.transcription);
+
+      const parseRes = await axios.post("http://127.0.0.1:8000/audio/parse", {
+        transcription: transcriptionRes.data.transcription,
+      });
+      setParsedReminder(parseRes.data.parsed);
+
+
+    } catch (err) {
+      console.error("Transcription failed", err);
+    }
+  };
+
+  const handleDeleteRecording = () => {
+    setAudioFile(null);
+    setTranscription(null);
+    setParsedReminder(null);
+  };
+
   useEffect(() => {
     fetchContacts();
   }, []);
 
   const fetchContacts = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/contacts/");
+      const res = await axios.get("http://127.0.0.1:8000/contacts");
       setContacts(res.data.contacts);
     } catch (err) {
       console.error("Failed to fetch contacts", err);
@@ -35,7 +99,7 @@ export default function App() {
     formData.append("file", addImage);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/add_contact/", formData);
+      const res = await axios.post("http://127.0.0.1:8000/contacts", formData);
       if (res.data.message === "Contact added successfully") {
         setName("");
         setAddImage(null);
@@ -55,7 +119,7 @@ export default function App() {
     formData.append("file", recognizeImage);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/recognize/", formData);
+      const res = await axios.post("http://127.0.0.1:8000/face/recognize", formData);
       setResult(res.data.result);
     } catch (err) {
       alert("Recognition failed");
@@ -97,7 +161,7 @@ export default function App() {
             </button>
           </div>
 
-          {/* Contact List Carousel */}
+          {/* Contact List */}
           <div className="card">
             <h2 style={{ color: "#555" }}>Contacts</h2>
             <ul className="contact-list">
@@ -107,10 +171,7 @@ export default function App() {
                 contacts.map((c) => (
                   <li key={c} className="contact-card">
                     <span>{c}</span>
-                    <button
-                      onClick={() => handleDelete(c)}
-                      className="delete"
-                    >
+                    <button onClick={() => handleDelete(c)} className="delete">
                       Delete
                     </button>
                   </li>
@@ -137,6 +198,40 @@ export default function App() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Voice Section */}
+      <h1>Voice Recognition</h1>
+      <div className="card">
+        <div className="button-row">
+          <button onClick={handleStartRecording} className="start">
+            Start Recording
+          </button>
+          <button onClick={handleStopRecording} className="stop">
+            Stop Recording
+          </button>
+          <button onClick={handleTranscribe} className="transcribe" disabled={!audioFile}>
+            Transcribe
+          </button>
+          <button onClick={handleDeleteRecording} className="delete">
+            Clear
+          </button>
+        </div>
+
+        {transcription && (
+          <div className="result">
+            <h3>Transcription:</h3>
+            <p>{transcription}</p>
+          </div>
+        )}
+        {parsedReminder && (
+          <div className="card">
+            <h3 style={{ marginBottom: "0.5rem" }}>Parsed Reminder</h3>
+            <p><strong>Title:</strong> {parsedReminder.title}</p>
+            {parsedReminder.time && <p><strong>Time:</strong> {parsedReminder.time}</p>}
+            {parsedReminder.location && <p><strong>Location:</strong> {parsedReminder.location}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

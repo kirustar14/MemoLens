@@ -1,19 +1,28 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
+from fastapi import HTTPException
 import os
-import shutil
 import uuid
 import face_recognition
 import pickle
+import whisper  
+import spacy
+import dateparser
+import tempfile
+import os
+from pydantic import BaseModel
+from typing import Optional
+import requests
+
+
 
 app = FastAPI()
 
-# Allow frontend to talk to backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can restrict this in prod
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,8 +34,9 @@ MODELS_DIR = "models"
 os.makedirs(CONTACTS_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR, exist_ok=True)
 
-@app.post("/add_contact/")
-async def add_contact(name: str = Form(...), file: UploadFile = File(...)):
+# Face Upload → Add Contact (associate image)
+@app.post("/face/upload")
+async def upload_face(name: str = Form(...), file: UploadFile = File(...)):
     contents = await file.read()
     img_path = f"{CONTACTS_DIR}/{name}_{uuid.uuid4().hex}.jpg"
 
@@ -46,14 +56,9 @@ async def add_contact(name: str = Form(...), file: UploadFile = File(...)):
 
     return {"message": "Contact added successfully"}
 
-@app.get("/contacts/")
-def list_contacts():
-    files = os.listdir(MODELS_DIR)
-    names = [f.replace(".pkl", "") for f in files if f.endswith(".pkl")]
-    return {"contacts": names}
-
-@app.post("/recognize/")
-async def recognize(file: UploadFile = File(...)):
+# Face Recognize → Match image against contacts
+@app.post("/face/recognize")
+async def recognize_face(file: UploadFile = File(...)):
     contents = await file.read()
     temp_file = f"temp_{uuid.uuid4().hex}.jpg"
     with open(temp_file, "wb") as f:
@@ -79,15 +84,131 @@ async def recognize(file: UploadFile = File(...)):
 
     return {"result": "Unknown"}
 
-@app.delete("/contacts/{name}")
-def delete_contact(name: str):
-    model_path = f"{MODELS_DIR}/{name}.pkl"
+# Get face encodings for a contact
+@app.get("/face/contact/{id}")
+def get_face_data(id: str):
+    model_path = f"{MODELS_DIR}/{id}.pkl"
+    if not os.path.exists(model_path):
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    with open(model_path, "rb") as f:
+        encoding = pickle.load(f)
+
+    images = [f for f in os.listdir(CONTACTS_DIR) if f.startswith(id)]
+    return {"encodings": encoding.tolist(), "images": images}
+
+# Create new contact
+@app.post("/contacts")
+async def create_contact(name: str = Form(...), file: UploadFile = File(...)):
+    return await upload_face(name, file)
+
+# Get all contacts
+@app.get("/contacts")
+def get_contacts():
+    files = os.listdir(MODELS_DIR)
+    names = [f.replace(".pkl", "") for f in files if f.endswith(".pkl")]
+    return {"contacts": names}
+
+# Get specific contact
+@app.get("/contacts/{id}")
+def get_contact(id: str):
+    return get_face_data(id)
+
+# Edit contact — reupload face
+@app.put("/contacts/{id}")
+async def edit_contact(id: str, file: UploadFile = File(...)):
+    return await upload_face(id, file)
+
+# Delete contact
+@app.delete("/contacts/{id}")
+def delete_contact(id: str):
+    model_path = f"{MODELS_DIR}/{id}.pkl"
     for file in os.listdir(CONTACTS_DIR):
-        if file.startswith(name):
+        if file.startswith(id):
             os.remove(os.path.join(CONTACTS_DIR, file))
     if os.path.exists(model_path):
         os.remove(model_path)
-        return {"message": f"{name} deleted"}
+        return {"message": f"{id} deleted"}
     else:
         return JSONResponse(content={"error": "Contact not found"}, status_code=404)
 
+
+# Create a new router for voice recognition
+router = APIRouter()
+
+# Initialize Whisper model for transcription
+whisper_model = whisper.load_model("base")
+
+# NLP setup
+nlp = spacy.load("en_core_web_sm")
+
+class TranscriptionResult(BaseModel):
+    transcription: str
+    parsed_date: str
+
+# Endpoint to record and transcribe audio
+@app.post("/audio/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    contents = await file.read()
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(contents)
+        temp_file_path = temp_file.name
+    
+    result = whisper_model.transcribe(temp_file_path)
+    transcription = result['text']
+    os.remove(temp_file_path)
+    
+    return {"transcription": transcription}
+
+# Define the ReminderParsed class to represent parsed reminder data
+class ReminderParsed(BaseModel):
+    title: str
+    time: Optional[str] = None
+    location: Optional[str] = None
+
+# Define a function to get a summary of the transcription using Hugging Face
+def summarize_text(text: str) -> str:
+    headers = {"Authorization": "Bearer APIKEY"}
+    payload = {
+        "inputs": text,
+    }
+    response = requests.post("https://api-inference.huggingface.co/models/t5-base", headers=headers, json=payload)
+    
+    print("Hugging Face Response:", response.json())
+    
+    if response.status_code == 200 and 'summary_text' in response.json()[0]:
+        return response.json()[0]['summary_text']
+    else:
+        return "Error summarizing text"
+@app.post("/audio/parse")
+async def parse_audio(input_data: dict = Body(...)):
+    transcription = input_data.get("transcription", "")
+    
+    # Summarize the transcription for the title using the new model
+    title = summarize_text(transcription)
+
+    doc = nlp(transcription)
+
+    # Extract datetime
+    datetime = None
+    for ent in doc.ents:
+        if ent.label_ in ["DATE", "TIME"]:
+            parsed = dateparser.parse(ent.text)
+            if parsed:
+                datetime = parsed.strftime("%I:%M %p")
+                break
+
+    # Extract location (get full entity or noun chunk after 'at' or 'in')
+    location = None
+    for i, token in enumerate(doc):
+        if token.text.lower() in ["at", "in"] and i + 1 < len(doc):
+            next_chunk = doc[i+1 : i+4]  # try grabbing next few tokens
+            location = " ".join([t.text for t in next_chunk if t.pos_ in ["PROPN", "NOUN", "ADJ"]])
+            break
+
+    return {
+        "parsed": ReminderParsed(title=title, time=datetime, location=location).dict()
+    }
+
+# Include the new router
+app.include_router(router)
