@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
+import Homepage from './components/Homepage';  //New what added for homepage
+
+//dont know where to place these 2
+const [showHomepage, setShowHomepage] = useState(true);
+if (showHomepage) return <Homepage onStart={() => setShowHomepage(false)} />;
 
 export default function App() {
   const [contacts, setContacts] = useState<string[]>([]);

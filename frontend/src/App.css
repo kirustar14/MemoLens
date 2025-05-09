@@ -178,3 +178,37 @@ ul.contact-list {
   color: #999;
   padding: 8px;
 }
+
+/* New for Homepage */
+.homepage {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: linear-gradient(to bottom right, #e0f7fa, #ffffff);
+}
+
+.homepage h1 {
+  font-size: 3rem;
+  color: #26A69A;
+  margin-bottom: 1rem;
+}
+
+.homepage p {
+  font-size: 1.2rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+.start-btn {
+  padding: 12px 24px;
+  font-size: 1rem;
+  background-color: #26A69A;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.start-btn:hover {
+  background-color: #1e9087;
+}
