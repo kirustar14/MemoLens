@@ -1,0 +1,6 @@
+services:
+  faceapp:
+    build: .
+    volumes:
+      - .:/app
+    tty: true
