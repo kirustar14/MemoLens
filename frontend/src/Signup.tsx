@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import './Login.css'; // Reuse login styles
+import './Signup.css'; // Use the dedicated signup CSS
 
 export default function Signup() {
   const [username, setUsername] = useState('');
@@ -21,9 +21,9 @@ export default function Signup() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Create Account</h2>
+    <div className="signup-page">
+      <div className="signup-card">
+        <h2>Create Account</h2>
         <input
           placeholder="Username or Email"
           value={username}
@@ -35,8 +35,11 @@ export default function Signup() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button onClick={handleSignup} className="login-button">Sign Up</button>
-        <p className="signup-switch">Already have an account? <a href="/login">Log in</a></p>
+        <button onClick={handleSignup} className="signup-button">Sign Up</button>
+        <div className="login-redirect">
+          Already have an account?
+          <span onClick={() => window.location.href = '/login'}> Log in</span>
+        </div>
         {message && <p className="login-message">{message}</p>}
       </div>
     </div>

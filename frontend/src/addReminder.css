@@ -1,0 +1,171 @@
+.add-reminder-container {
+  background: #fafafa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 32px;
+}
+
+.add-reminder-topbar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  border: 2px solid #bbb;
+  border-bottom: none;
+  margin-top: 32px;
+  padding: 12px 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.add-reminder-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.add-reminder-card, .add-details-card {
+  background: #fff;
+  border: 2px solid #bbb;
+  border-radius: 12px;
+  box-shadow: none;
+  width: 100%;
+  max-width: 420px;
+  margin: 18px 0 0 0;
+  padding: 18px 18px 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reminder-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reminder-title-input {
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-bottom: 1.5px solid #bbb;
+  background: transparent;
+  flex: 1;
+  outline: none;
+  padding: 2px 0;
+}
+
+.edit-title-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.reminder-row {
+  font-size: 1rem;
+  color: #444;
+  margin-left: 2px;
+}
+
+.details-header {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.details-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #bbb;
+  border-radius: 7px;
+  font-size: 1rem;
+  margin-bottom: 8px;
+  background: #fafafa;
+}
+
+.attendees-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-attendee-btn {
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+
+.details-textarea {
+  width: 100%;
+  min-height: 60px;
+  border: 1.5px solid #bbb;
+  border-radius: 7px;
+  font-size: 1rem;
+  padding: 8px 10px;
+  background: #fafafa;
+  margin-top: 8px;
+}
+
+.create-btn {
+  width: 100%;
+  max-width: 420px;
+  margin: 24px 0 0 0;
+  padding: 14px 0;
+  background: #fff;
+  color: #222;
+  border: 2px solid #bbb;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.2s;
+}
+
+.create-btn:hover {
+  background: #f0f0f0;
+}
+
+/* Optional: Bottom nav bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 2px solid #bbb;
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  font-size: 1.4rem;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+}
+
+.nav-plus {
+  background: #2196f3;
+  color: #fff;
+  border-radius: 8px;
+  padding: 2px 12px;
+  font-size: 1.5rem;
+}

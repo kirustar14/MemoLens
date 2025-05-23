@@ -4,6 +4,16 @@ import axios from 'axios';
 import './App.css';
 import Login from './Login';
 import Signup from './Signup';
+import React from 'react';
+import Reminders from './reminders';
+import AddReminder from './AddReminder';
+import { RemindersProvider } from './RemindersContext';
+import Contacts from './Contacts';
+import ContactProfile from './ContactProfile';
+import AddEditContact from './AddEditContact';
+import { ContactsProvider } from './ContactsContext';
+
+
 
 export default function App() {
   const [contacts, setContacts] = useState<string[]>([]);
@@ -140,12 +150,22 @@ export default function App() {
   );
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<FaceContactManager />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
-    </BrowserRouter>
+    <ContactsProvider>
+      <RemindersProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<FaceContactManager />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/add-reminder" element={<AddReminder />} />
+            <Route path="/reminders" element={<Reminders />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/contacts/add" element={<AddEditContact />} />
+            <Route path="/contacts/:id" element={<ContactProfile />} />
+            <Route path="/contacts/:id/edit" element={<AddEditContact />} />
+          </Routes>
+        </BrowserRouter>
+      </RemindersProvider>
+    </ContactsProvider>
   );
 }

@@ -1,101 +1,170 @@
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #e6f4f1;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.memolens-header {
+  position: absolute;
+  top: 32px;
+  left: 48px;   /* <-- changed from right to left */
+  font-size: 2rem;
+  font-weight: bold;
+  color: #009688;
+  letter-spacing: 1px;
+  z-index: 10;
+}
+
 .login-page {
-    display: flex;
-    height: 100vh;
-    background: #e6f4f1;
-    justify-content: center;
-    align-items: center;
-    gap: 80px;
-    font-family: 'Segoe UI', sans-serif;
-  }
-  
-  .welcome-section {
-    text-align: right;
-  }
-  
-  .welcome-section h1 {
-    font-size: 40px;
-    color: #00a68f;
-  }
-  
-  .welcome-section p {
-    font-size: 16px;
-    color: #555;
-  }
-  
-  .login-card {
-    background: white;
-    padding: 40px 30px;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    width: 320px;
-    display: flex;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #e6f4f1;
+  position: relative;
+}
+
+.welcome-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+}
+
+.welcome-section h1 {
+  font-size: 48px;
+  color: #00a68f;
+  margin-bottom: 10px;
+}
+
+.welcome-section p {
+  font-size: 18px;
+  color: #555;
+}
+
+.login-card {
+  background: white;
+  padding: 48px 36px 36px 36px;
+  border-radius: 24px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
+  width: 370px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.icon-circle {
+  background: #e0f7f4;
+  border-radius: 50%;
+  padding: 16px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-image {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.login-card h2 {
+  color: #008c7e;
+  margin-bottom: 28px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.login-card input {
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1.5px solid #e0e0e0;
+  font-size: 17px;
+  background: #f7f7f7;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.login-card input:focus {
+  border: 1.5px solid #00a68f;
+  outline: none;
+  background: #f0fcfa;
+  box-shadow: 0 4px 16px rgba(0,166,143,0.07);
+}
+
+.options {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 22px;
+  color: #666;
+  align-items: center;
+}
+
+.forgot {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.login-checkbox {
+  margin-right: 6px;
+}
+
+.login-button {
+  width: 100%;
+  padding: 16px 0;
+  background: linear-gradient(90deg, #00a68f, #00c3b1);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 20px;
+  cursor: pointer;
+  margin-bottom: 18px;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0,166,143,0.08);
+}
+
+.login-button:hover {
+  background: linear-gradient(90deg, #00c3b1, #00a68f);
+  box-shadow: 0 4px 16px rgba(0,166,143,0.13);
+}
+
+.signup-redirect {
+  font-size: 15px;
+  color: #555;
+  margin-top: 10px;
+}
+
+.create-account {
+  color: #00a68f;
+  font-weight: bold;
+  margin-left: 5px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .login-page {
     flex-direction: column;
-    align-items: center;
+    gap: 30px;
+    padding: 40px 0;
   }
-  
-  .icon-circle {
-    background: #e0f7f4;
-    border-radius: 50%;
-    padding: 12px;
-    margin-bottom: 15px;
+  .welcome-section {
+    text-align: center;
+    margin-bottom: 0;
   }
-  
-  .user-image {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
-  }
-  
-  .login-card h2 {
-    color: #008c7e;
-    margin-bottom: 25px;
-    font-size: 20px;
-  }
-  
-  .login-card input {
-    width: 100%;
-    margin-bottom: 15px;
-    padding: 12px 14px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
-  
-  .options {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    margin-bottom: 20px;
-    color: #666;
-  }
-  
-  .forgot {
-    color: #007bff;
-    cursor: pointer;
-  }
-  
-  .login-button {
-    width: 100%;
-    padding: 10px 0;
-    background: linear-gradient(90deg, #00a68f, #00c3b1);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-bottom: 15px;
-  }
-  
-  .signup-redirect {
-    font-size: 13px;
-    color: #555;
-  }
-  
-  .create-account {
-    color: #00a68f;
-    font-weight: bold;
-    margin-left: 5px;
-    cursor: pointer;
-  }
-  
+
+}

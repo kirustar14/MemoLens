@@ -1,0 +1,219 @@
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+/* Container for the reminders page */
+.reminders-container {
+  min-height: 100vh;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 80px;
+  width: 100%;
+}
+
+.reminders-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* This is key */
+  position: relative; /* Needed for absolute positioning of sync-btn */
+  width: 100%;
+  max-width: 420px;
+  background: #2196f3;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 10px 16px;
+  margin-top: 32px;
+  margin-bottom: 0;
+  border: 2px solid #bbb;
+}
+
+.reminders-appicon {
+  font-size: 1.4rem;
+  margin-right: 8px;
+}
+
+.reminders-appname {
+  font-size: 1.3rem;
+  font-weight: bold;
+  flex: 1;
+  font-family: 'Segoe UI', Arial, sans-serif; /* Add this for a clean look */
+}
+
+/* Header */
+.reminders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 32px 0 24px 0;
+}
+
+.reminders-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin: 24px 0 18px 0;
+  color: #222;
+  font-family: 'Segoe UI', Arial, sans-serif; /* Add this */
+}
+
+.sync-btn {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  color: #009688;
+  border: 1.5px solid #bbb;
+  border-radius: 4px;
+  padding: 1px 6px 1px 4px; /* Minimal padding */
+  font-weight: 600;
+  cursor: pointer;
+  width: 54px;
+  height: 54px;
+  transition: background 0.2s;
+  font-size: 0.8rem;
+  box-shadow: none;
+  height: 22px;
+  min-width: 0;
+  /* Remove margin-left: auto */
+}
+
+.sync-logo {
+  width: 12px;
+  height: 12px;
+  margin-right: 2px;
+  object-fit: contain;
+}
+
+.sync-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #009688;
+  margin-left: 0;
+}
+
+/* Reminder list */
+.reminder-list {
+  width: 100%;
+  max-width: 420px;
+  margin-top: 0;
+}
+
+/* Individual reminder card */
+.reminder-card {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 18px 18px 18px;
+  margin-bottom: 18px;
+  border: 2px solid #bbb;
+  box-shadow: none;
+  transition: box-shadow 0.2s;
+}
+
+.reminder-card:hover {
+  box-shadow: 0 4px 16px rgba(0,166,143,0.10);
+}
+
+.reminder-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #222;
+  font-family: 'Segoe UI', Arial, sans-serif; /* Add this */
+}
+
+.reminder-details {
+  color: #555;
+  font-size: 1rem;
+}
+
+.reminder-meta {
+  color: #999;
+  font-size: 0.89rem;
+  margin-bottom: 2px;
+}
+
+.reminder-source {
+  color: #bbb;
+  font-size: 0.85rem;
+}
+
+.reminder-edit-btn {
+  background: #fff;
+  border: 2px solid #bbb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  margin-left: 10px;
+  transition: background 0.2s;
+}
+.reminder-edit-btn:hover {
+  background: #e0f7f4;
+}
+
+.reminder-edit-btn[aria-label="Delete Reminder"] {
+  color: #e53935;
+  border-color: #e53935;
+}
+
+.add-reminder-btn {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #009688;
+  border: 2px solid #bbb;
+  border-radius: 12px;
+  width: 54px;
+  height: 54px;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  cursor: pointer;
+  z-index: 100;
+  transition: background 0.2s;
+}
+.add-reminder-btn:hover {
+  background: #e0f7f4;
+}
+
+.reminder-empty {
+  color: #bbb;
+  text-align: center;
+  margin-top: 40px;
+  font-size: 1.1rem;
+}
+
+.outline {
+  border: 2px solid #bbb !important;
+  box-shadow: none !important;
+}
+
+.reminder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-left: 24px;
+}
+
+@media (max-width: 600px) {
+  .reminders-topbar,
+  .reminder-list {
+    max-width: 98vw;
+  }
+}
