@@ -9,15 +9,18 @@ from uuid import uuid4
 import os
 import shutil
 import uuid
+import json
 # import face_recognition  
 import pickle
+from datetime import datetime
+import base64
 
 app = FastAPI()
 
-# Allow frontend to talk to backend
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can restrict this in prod
+    allow_origins=["http://localhost:5173"],  # Vite's default port
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,9 +28,22 @@ app.add_middleware(
 
 CONTACTS_DIR = "contacts"
 MODELS_DIR = "models"
+USERS_FILE = "users.json"
 
 os.makedirs(CONTACTS_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR, exist_ok=True)
+
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f)
+
+users = load_users()
 
 @app.post("/add_contact/")
 async def add_contact(name: str = Form(...), file: UploadFile = File(...)):
@@ -83,17 +99,13 @@ async def recognize(file: UploadFile = File(...)):
 
     return {"result": "Unknown"}
 
-
-users = {}  
-
 @app.post("/signup/")
 async def signup(username: str = Form(...), password: str = Form(...)):
     if username in users:
         return JSONResponse(content={"error": "User already exists"}, status_code=400)
     users[username] = password
+    save_users(users)
     return {"message": "User created successfully"}
-
-
 
 @app.post("/login/")
 async def login(username: str = Form(...), password: str = Form(...)):
@@ -101,6 +113,15 @@ async def login(username: str = Form(...), password: str = Form(...)):
         return {"access_token": "dummy-token-for-" + username}
     return JSONResponse(content={"error": "Invalid credentials"}, status_code=401)
 
+@app.get("/user/")
+async def get_user(Authorization: str = Header("")):
+    token = Authorization.replace("Bearer ", "")
+    username = get_current_user(token)
+    return {
+        "name": username,
+        "email": f"{username}@example.com",
+        "lastLogin": datetime.now().isoformat()
+    }
 
 @app.delete("/contacts/{name}")
 def delete_contact(name: str):
@@ -252,4 +273,134 @@ def delete_contact(id: str, Authorization: str = Header("")):
         raise HTTPException(status_code=404, detail="Contact not found")
     del contacts_db[id]
     return {"message": "Contact deleted"}
+
+# Add new model for scanned tools
+class ScannedTool(BaseModel):
+    id: str
+    user: str
+    name: str
+    category: str
+    safety_level: str
+    instructions: List[str]
+    maintenance: str
+    last_scanned: str
+    image: str
+
+# Database for scanned tools
+scanned_tools_db: Dict[str, ScannedTool] = {}
+
+# New endpoints for scanned tools
+@app.post("/tools/scanned", response_model=ScannedTool)
+def add_scanned_tool(tool_data: dict, Authorization: str = Header("")):
+    token = Authorization.replace("Bearer ", "")
+    user = get_current_user(token)
+    
+    tool_id = str(uuid4())
+    tool = ScannedTool(
+        id=tool_id,
+        user=user,
+        name=tool_data["name"],
+        category=tool_data["category"],
+        safety_level=tool_data["safety_level"],
+        instructions=tool_data["instructions"],
+        maintenance=tool_data["maintenance"],
+        last_scanned=datetime.now().strftime("%Y-%m-%d"),
+        image=tool_data["image"]
+    )
+    
+    scanned_tools_db[tool_id] = tool
+    return tool
+
+@app.get("/tools/scanned", response_model=List[ScannedTool])
+def get_scanned_tools(Authorization: str = Header("")):
+    token = Authorization.replace("Bearer ", "")
+    user = get_current_user(token)
+    return [tool for tool in scanned_tools_db.values() if tool.user == user]
+
+# Tool information database
+TOOL_INFO = {
+    "power_drill": {
+        "name": "Power Drill",
+        "category": "Power Tools",
+        "safety_level": "Intermediate",
+        "instructions": [
+            "Always wear safety glasses and ear protection",
+            "Check the battery charge before use",
+            "Select the appropriate drill bit for your task",
+            "Start with low speed for precise control",
+            "Keep drill perpendicular to the surface"
+        ],
+        "maintenance": "Clean after each use, lubricate moving parts monthly",
+        "image": "🔧"
+    },
+    "circular_saw": {
+        "name": "Circular Saw",
+        "category": "Power Tools",
+        "safety_level": "Advanced",
+        "instructions": [
+            "Ensure blade guard is functioning properly",
+            "Check blade sharpness and condition",
+            "Secure workpiece before cutting",
+            "Allow blade to reach full speed before cutting",
+            "Keep both hands on the saw during operation"
+        ],
+        "maintenance": "Replace blade when dull, check guard mechanism weekly",
+        "image": "⚡"
+    },
+    "measuring_tape": {
+        "name": "Measuring Tape",
+        "category": "Hand Tools",
+        "safety_level": "Beginner",
+        "instructions": [
+            "Pull tape out smoothly to prevent snapping",
+            "Lock tape at desired length",
+            "Mark measurement clearly",
+            "Retract tape slowly to prevent damage",
+            "Keep tape clean and dry"
+        ],
+        "maintenance": "Wipe clean after use, store in dry place",
+        "image": "📏"
+    }
+}
+
+@app.get("/tools/info/{tool_id}")
+def get_tool_info(tool_id: str):
+    if tool_id not in TOOL_INFO:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    return TOOL_INFO[tool_id]
+
+class CameraData(BaseModel):
+    image: str  # Base64 encoded image
+    timestamp: str
+    device_id: str
+    metadata: Optional[Dict] = {}
+
+@app.post("/camera/upload/")
+async def upload_camera_data(data: CameraData):
+    try:
+        # Decode base64 image
+        image_data = base64.b64decode(data.image)
+        
+        # Generate unique filename
+        filename = f"camera_{data.device_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        filepath = os.path.join("camera_uploads", filename)
+        
+        # Ensure directory exists
+        os.makedirs("camera_uploads", exist_ok=True)
+        
+        # Save image
+        with open(filepath, "wb") as f:
+            f.write(image_data)
+            
+        return {
+            "status": "success",
+            "filename": filename,
+            "timestamp": data.timestamp,
+            "device_id": data.device_id
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={"status": "error", "message": str(e)}
+        )
 

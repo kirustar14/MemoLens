@@ -1,5 +1,5 @@
 // src/Login.tsx
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Login.css';
@@ -12,13 +12,13 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await axios.post('http://localhost:8000/login', new URLSearchParams({
+      const res = await axios.post('http://localhost:8000/login/', new URLSearchParams({
         username,
         password
       }));
 
       localStorage.setItem('token', res.data.access_token);
-      navigate('/');
+      window.location.href = '/';
     } catch {
       alert('Login failed');
     }

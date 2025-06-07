@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import Login from './Login';
@@ -12,8 +12,16 @@ import Contacts from './Contacts';
 import ContactProfile from './ContactProfile';
 import AddEditContact from './AddEditContact';
 import { ContactsProvider } from './ContactsContext';
+import Settings from './Settings';
+import ObjectDetection from './ObjectDetection';
+import DetectionHistory from './DetectionHistory';
 
-
+// Add a type for user data
+interface UserData {
+  name: string;
+  email: string;
+  lastLogin?: Date;
+}
 
 export default function App() {
   const [contacts, setContacts] = useState<string[]>([]);
@@ -21,10 +29,59 @@ export default function App() {
   const [addImage, setAddImage] = useState<File | null>(null);
   const [recognizeImage, setRecognizeImage] = useState<File | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
     fetchContacts();
+    fetchUserData(); // Fetch user data when component mounts
+    generateGreeting(); // Generate appropriate greeting based on time of day
   }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUserData(null);
+        return;
+      }
+
+      const response = await axios.get('http://localhost:8000/user/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      setUserData(response.data);
+      generateGreeting();
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+      setUserData(null);
+    }
+  };
+
+  // Add useEffect to refetch user data when token changes
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchUserData();
+    }
+  }, []);
+
+  const generateGreeting = () => {
+    const hour = new Date().getHours();
+    let timeBasedGreeting = '';
+    
+    if (hour < 12) {
+      timeBasedGreeting = 'Good morning';
+    } else if (hour < 17) {
+      timeBasedGreeting = 'Good afternoon';
+    } else {
+      timeBasedGreeting = 'Good evening';
+    }
+    
+    setGreeting(timeBasedGreeting);
+  };
 
   const fetchContacts = async () => {
     try {
@@ -80,70 +137,105 @@ export default function App() {
   };
 
   const FaceContactManager = () => (
-    <div className="app">
-      <h1>Face Contact Manager</h1>
-
-      <div className="grid">
-        {/* Left Side */}
-        <div className="space-y">
-          {/* Add Contact */}
-          <div className="card">
-            <h2 style={{ color: '#26A69A' }}>Add New Contact</h2>
-            <input
-              type="text"
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setAddImage(e.target.files?.[0] || null)}
-            />
-            <button onClick={handleAddContact} className="submit">
-              Submit
-            </button>
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <div className="header-content">
+          <h1>MemoLens Dashboard</h1>
+          {userData && (
+            <p className="welcome-message">
+              {greeting}, {userData.name}! 
+              <span className="last-visit">
+                Last visit: {new Date(userData.lastLogin || '').toLocaleDateString()}
+              </span>
+            </p>
+          )}
+        </div>
+        <div className="header-right">
+          <div className="glasses-status">
+            <span className="status-dot connected"></span>
+            Smart Glasses Connected
           </div>
+          <Link to="/settings" className="settings-icon" aria-label="Settings">
+            <div className="hamburger-menu">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </Link>
+        </div>
+      </header>
 
-          {/* Contact List */}
-          <div className="card">
-            <h2 style={{ color: '#555' }}>Contacts</h2>
-            <ul className="contact-list">
-              {contacts.length === 0 ? (
-                <li className="contact-empty">No contacts yet</li>
-              ) : (
-                contacts.map((c) => (
-                  <li key={c} className="contact-card">
-                    <span>{c}</span>
-                    <button
-                      onClick={() => handleDelete(c)}
-                      className="delete"
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
+      <div className="dashboard-grid">
+        {/* Quick Actions */}
+        <div className="quick-actions section">
+          <h2>Quick Actions</h2>
+          <div className="action-buttons">
+            <Link to="/detection" className="action-button primary">
+              Start Detection
+            </Link>
+            <Link to="/history" className="action-button secondary">
+              View History
+            </Link>
+            <Link to="/contacts" className="action-button">
+              Manage Contacts
+            </Link>
           </div>
         </div>
 
-        {/* Right Side */}
-        <div className="card">
-          <h2 style={{ color: '#2196f3' }}>Recognize Face</h2>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setRecognizeImage(e.target.files?.[0] || null)}
-          />
-          <button onClick={handleRecognize} className="recognize">
-            Recognize
-          </button>
-          {result && (
-            <div className="result">
-              <strong>Result:</strong> {result}
+        {/* Recent Detections */}
+        <div className="recent-detections section">
+          <h2>Recent Detections</h2>
+          <div className="detection-cards">
+            <div className="detection-card hazard">
+              <span className="type-badge">Warning</span>
+              <p>Sharp object detected</p>
+              <span className="time">2 mins ago</span>
             </div>
-          )}
+            <div className="detection-card tool">
+              <span className="type-badge">Tool</span>
+              <p>Power drill identified</p>
+              <span className="time">5 mins ago</span>
+            </div>
+          </div>
+          <Link to="/history" className="view-all">View All Detections →</Link>
+        </div>
+
+        {/* Contact Management */}
+        <div className="contact-section section">
+          <div className="section-header">
+            <h2>Contact Management</h2>
+            <Link to="/contacts/add" className="add-contact-btn">Add New Contact</Link>
+          </div>
+          
+          <div className="contacts-list card">
+            <h3>Recent Contacts</h3>
+            {contacts.length === 0 ? (
+              <p className="no-contacts">No contacts added yet</p>
+            ) : (
+              <ul className="contact-grid">
+                {contacts.slice(0, 4).map((c) => (
+                  <li key={c} className="contact-item">
+                    <div className="contact-info">
+                      <span className="contact-name">{c}</span>
+                      <div className="contact-actions">
+                        <Link to={`/contacts/${c}`} className="view-btn">View Profile</Link>
+                        <button
+                          onClick={() => handleDelete(c)}
+                          className="delete-btn"
+                          aria-label={`Delete ${c}`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {contacts.length > 4 && (
+              <Link to="/contacts" className="view-all">View All Contacts →</Link>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -163,6 +255,10 @@ export default function App() {
             <Route path="/contacts/add" element={<AddEditContact />} />
             <Route path="/contacts/:id" element={<ContactProfile />} />
             <Route path="/contacts/:id/edit" element={<AddEditContact />} />
+            <Route path="/settings" element={<Settings />} />
+            {/* New MemoLens Routes */}
+            <Route path="/detection" element={<ObjectDetection />} />
+            <Route path="/history" element={<DetectionHistory />} />
           </Routes>
         </BrowserRouter>
       </RemindersProvider>

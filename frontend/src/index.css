@@ -49,3 +49,25 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Dark mode styles */
+body.dark,
+.dark-mode {
+  background: #181a1b !important;
+  color: #f1f1f1 !important;
+}
+
+.dark-mode .card,
+.dark-mode .settings-container,
+.dark-mode .contacts-container {
+  background: #23272a !important;
+  color: #f1f1f1 !important;
+  border-color: #333 !important;
+}
+
+.dark-mode input,
+.dark-mode textarea {
+  background: #23272a !important;
+  color: #f1f1f1 !important;
+  border-color: #444 !important;
+}
