@@ -7,6 +7,13 @@
   background: white;
 }
 
+.live-stream {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
 .detection-header {
   display: flex;
   align-items: center;

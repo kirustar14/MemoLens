@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ObjectDetection.css';
 
@@ -27,6 +27,19 @@ const ObjectDetection: React.FC = () => {
   const [isLiveView, setIsLiveView] = useState(true);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolInfo | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+  fetch("http://localhost:8000/camera/stream_url/")  // replace with your FastAPI base URL
+    .then(res => res.json())
+    .then(data => {
+      setStreamUrl(data.stream_url);
+    })
+    .catch(err => {
+      console.error("Failed to fetch stream URL", err);
+    });
+}, []);
+
 
   // Example tool information - would come from your backend
   const toolInfo: ToolInfo = {
@@ -80,10 +93,21 @@ const ObjectDetection: React.FC = () => {
         </div>
 
         <div className="image-container">
-          <img 
-            src={isLiveView ? "/live-feed.jpg" : "/captured-image.jpg"} 
-            alt={isLiveView ? "Live feed" : "Captured image"} 
-          />
+          {isLiveView && streamUrl ? (
+    <img
+      src={streamUrl}
+      alt="Live Stream"
+      className="live-stream"
+      style={{ width: '100%', maxHeight: '400px', objectFit: 'cover' }}
+    />
+  ) : (
+    <img 
+      src="/captured-image.jpg" 
+      alt="Captured image"
+      style={{ width: '100%', maxHeight: '400px', objectFit: 'cover' }}
+    />
+  )}
+
           
           {detections.map((detection) => (
             <div
