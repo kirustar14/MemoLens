@@ -15,6 +15,7 @@ import { ContactsProvider } from './ContactsContext';
 import Settings from './Settings';
 import ObjectDetection from './ObjectDetection';
 import DetectionHistory from './DetectionHistory';
+import AddTool from './AddTool';
 
 // Add a type for user data
 interface UserData {
@@ -179,62 +180,9 @@ export default function App() {
             <Link to="/contacts" className="action-button">
               Manage Contacts
             </Link>
-          </div>
-        </div>
-
-        {/* Recent Detections */}
-        <div className="recent-detections section">
-          <h2>Recent Detections</h2>
-          <div className="detection-cards">
-            <div className="detection-card hazard">
-              <span className="type-badge">Warning</span>
-              <p>Sharp object detected</p>
-              <span className="time">2 mins ago</span>
-            </div>
-            <div className="detection-card tool">
-              <span className="type-badge">Tool</span>
-              <p>Power drill identified</p>
-              <span className="time">5 mins ago</span>
-            </div>
-          </div>
-          <Link to="/history" className="view-all">View All Detections →</Link>
-        </div>
-
-        {/* Contact Management */}
-        <div className="contact-section section">
-          <div className="section-header">
-            <h2>Contact Management</h2>
-            <Link to="/contacts/add" className="add-contact-btn">Add New Contact</Link>
-          </div>
-          
-          <div className="contacts-list card">
-            <h3>Recent Contacts</h3>
-            {contacts.length === 0 ? (
-              <p className="no-contacts">No contacts added yet</p>
-            ) : (
-              <ul className="contact-grid">
-                {contacts.slice(0, 4).map((c) => (
-                  <li key={c} className="contact-item">
-                    <div className="contact-info">
-                      <span className="contact-name">{c}</span>
-                      <div className="contact-actions">
-                        <Link to={`/contacts/${c}`} className="view-btn">View Profile</Link>
-                        <button
-                          onClick={() => handleDelete(c)}
-                          className="delete-btn"
-                          aria-label={`Delete ${c}`}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {contacts.length > 4 && (
-              <Link to="/contacts" className="view-all">View All Contacts →</Link>
-            )}
+            <Link to="/add-tool" className="action-button">
+              Add Tool
+            </Link>
           </div>
         </div>
       </div>
@@ -259,6 +207,7 @@ export default function App() {
             {/* New MemoLens Routes */}
             <Route path="/detection" element={<ObjectDetection />} />
             <Route path="/history" element={<DetectionHistory />} />
+            <Route path="/add-tool" element={<AddTool />} />
           </Routes>
         </BrowserRouter>
       </RemindersProvider>
