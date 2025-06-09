@@ -15,6 +15,12 @@ import pickle
 from datetime import datetime
 import base64
 
+# size detection models 
+from ultralytics import YOLO
+import numpy as np
+import cv2
+
+
 app = FastAPI()
 
 # Configure CORS
@@ -32,6 +38,12 @@ USERS_FILE = "users.json"
 
 os.makedirs(CONTACTS_DIR, exist_ok=True)
 os.makedirs(MODELS_DIR, exist_ok=True)
+
+
+model = YOLO("yolov8n.pt")
+
+
+
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -274,11 +286,57 @@ def delete_contact(id: str, Authorization: str = Header("")):
     del contacts_db[id]
     return {"message": "Contact deleted"}
 
-# Add new model for scanned tools
+
+# size detection 
+
+@app.post("/detect/size")
+async def detect_size(file: UploadFile = File(...)):
+    
+    try:
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            raise ValueError("Failed to decode image. Image may be empty or corrupted.")
+
+        results = model(img)[0]  # YOLOv8 inference
+
+        output = []
+        for box in results.boxes:
+            cls = int(box.cls[0])
+            label = model.names[cls]
+            conf = float(box.conf[0])
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            width = x2 - x1
+            height = y2 - y1
+
+            output.append({
+                "label": label,
+                "confidence": round(conf, 2),
+                "bounding_box": {
+                    "x": round(x1),
+                    "y": round(y1),
+                    "width": round(width),
+                    "height": round(height)
+                }
+            })
+
+        return {"results": output}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    
+
+
+    # tool manual 
+
+
+
 class ScannedTool(BaseModel):
     id: str
     user: str
     name: str
+    label: str
     category: str
     safety_level: str
     instructions: List[str]
@@ -286,20 +344,19 @@ class ScannedTool(BaseModel):
     last_scanned: str
     image: str
 
-# Database for scanned tools
 scanned_tools_db: Dict[str, ScannedTool] = {}
 
-# New endpoints for scanned tools
 @app.post("/tools/scanned", response_model=ScannedTool)
 def add_scanned_tool(tool_data: dict, Authorization: str = Header("")):
     token = Authorization.replace("Bearer ", "")
     user = get_current_user(token)
-    
+
     tool_id = str(uuid4())
     tool = ScannedTool(
         id=tool_id,
         user=user,
         name=tool_data["name"],
+        label=tool_data.get("label", tool_data["name"]),
         category=tool_data["category"],
         safety_level=tool_data["safety_level"],
         instructions=tool_data["instructions"],
@@ -307,7 +364,6 @@ def add_scanned_tool(tool_data: dict, Authorization: str = Header("")):
         last_scanned=datetime.now().strftime("%Y-%m-%d"),
         image=tool_data["image"]
     )
-    
     scanned_tools_db[tool_id] = tool
     return tool
 
@@ -317,90 +373,45 @@ def get_scanned_tools(Authorization: str = Header("")):
     user = get_current_user(token)
     return [tool for tool in scanned_tools_db.values() if tool.user == user]
 
-# Tool information database
-TOOL_INFO = {
-    "power_drill": {
-        "name": "Power Drill",
-        "category": "Power Tools",
-        "safety_level": "Intermediate",
-        "instructions": [
-            "Always wear safety glasses and ear protection",
-            "Check the battery charge before use",
-            "Select the appropriate drill bit for your task",
-            "Start with low speed for precise control",
-            "Keep drill perpendicular to the surface"
-        ],
-        "maintenance": "Clean after each use, lubricate moving parts monthly",
-        "image": "🔧"
-    },
-    "circular_saw": {
-        "name": "Circular Saw",
-        "category": "Power Tools",
-        "safety_level": "Advanced",
-        "instructions": [
-            "Ensure blade guard is functioning properly",
-            "Check blade sharpness and condition",
-            "Secure workpiece before cutting",
-            "Allow blade to reach full speed before cutting",
-            "Keep both hands on the saw during operation"
-        ],
-        "maintenance": "Replace blade when dull, check guard mechanism weekly",
-        "image": "⚡"
-    },
-    "measuring_tape": {
-        "name": "Measuring Tape",
-        "category": "Hand Tools",
-        "safety_level": "Beginner",
-        "instructions": [
-            "Pull tape out smoothly to prevent snapping",
-            "Lock tape at desired length",
-            "Mark measurement clearly",
-            "Retract tape slowly to prevent damage",
-            "Keep tape clean and dry"
-        ],
-        "maintenance": "Wipe clean after use, store in dry place",
-        "image": "📏"
-    }
-}
-
-@app.get("/tools/info/{tool_id}")
-def get_tool_info(tool_id: str):
-    if tool_id not in TOOL_INFO:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    return TOOL_INFO[tool_id]
-
-class CameraData(BaseModel):
-    image: str  # Base64 encoded image
-    timestamp: str
-    device_id: str
-    metadata: Optional[Dict] = {}
-
-@app.post("/camera/upload/")
-async def upload_camera_data(data: CameraData):
+@app.post("/detect/tool")
+async def detect_tool(file: UploadFile = File(...), Authorization: str = Header("")):
     try:
-        # Decode base64 image
-        image_data = base64.b64decode(data.image)
-        
-        # Generate unique filename
-        filename = f"camera_{data.device_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-        filepath = os.path.join("camera_uploads", filename)
-        
-        # Ensure directory exists
-        os.makedirs("camera_uploads", exist_ok=True)
-        
-        # Save image
-        with open(filepath, "wb") as f:
-            f.write(image_data)
-            
-        return {
-            "status": "success",
-            "filename": filename,
-            "timestamp": data.timestamp,
-            "device_id": data.device_id
-        }
-    except Exception as e:
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "message": str(e)}
-        )
+        token = Authorization.replace("Bearer ", "")
+        user = get_current_user(token)
 
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            raise ValueError("Failed to decode image")
+
+        results = model(img)[0]
+        output = []
+
+        for box in results.boxes:
+            cls = int(box.cls[0])
+            label = model.names[cls].lower()
+
+            matched_tool = None
+            for t in scanned_tools_db.values():
+                if t.user == user and label in t.label.lower():
+                    matched_tool = {
+                        "name": t.name,
+                        "category": t.category,
+                        "safety_level": t.safety_level,
+                        "instructions": t.instructions,
+                        "maintenance": t.maintenance,
+                        "image": t.image
+                    }
+                    break
+
+            output.append({
+                "match": bool(matched_tool),
+                "label": label,
+                "tool_info": matched_tool or "Tool not in database"
+            })
+
+        return {"results": output}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
