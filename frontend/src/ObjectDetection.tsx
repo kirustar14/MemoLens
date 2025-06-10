@@ -1,18 +1,18 @@
-import React, { useState, useRef , useEffect} from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ObjectDetection.css';
 
 const ObjectDetection: React.FC = () => {
   const navigate = useNavigate();
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
-  const [streamURL, setStreamURL] = useState<string>("");
+  const [streamURL, setStreamURL] = useState<string>('');
   const [capturedImageURL, setCapturedImageURL] = useState<string | null>(null);
   const [detectionResults, setDetectionResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const imageRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const capturedBlobRef = useRef<Blob | null>(null); // store blob between steps
+  const capturedBlobRef = useRef<Blob | null>(null);
 
   const handleModeSelect = async (mode: string) => {
     setSelectedMode(mode);
@@ -23,7 +23,7 @@ const ObjectDetection: React.FC = () => {
       try {
         const res = await fetch('http://localhost:8000/camera/stream_url/');
         const data = await res.json();
-        setStreamURL(data.stream_url);
+        setStreamURL(data.stream_url); // no ?t here
       } catch (err) {
         alert('Failed to load ESP32 stream');
         console.error(err);
@@ -31,44 +31,33 @@ const ObjectDetection: React.FC = () => {
     }
   };
 
+const handleCaptureImage = async () => {
+  if (!imageRef.current || !canvasRef.current) return;
 
-    // inside component
-    useEffect(() => {
-      if (selectedMode === 'site') {
-        const interval = setInterval(() => {
-          setStreamURL(prev => {
-            const base = prev.split('?')[0];
-            return `${base}?t=${Date.now()}`; // force refresh
-          });
-        }, 500); // refresh every 500ms
+  const image = imageRef.current;
+  const canvas = canvasRef.current;
 
-        return () => clearInterval(interval);
-      }
-    }, [selectedMode]);
+  if (!image.complete || image.naturalWidth === 0) {
+    alert("Image not loaded yet. Try again in a moment.");
+    return;
+  }
 
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
 
-  const handleCaptureImage = async () => {
-    if (!imageRef.current || !canvasRef.current) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-    const image = imageRef.current;
-    const canvas = canvasRef.current;
+  // Draw the image to canvas
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-
-      const imageURL = URL.createObjectURL(blob);
-      setCapturedImageURL(imageURL);
-      capturedBlobRef.current = blob;
-    }, "image/jpeg");
-  };
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const imageURL = URL.createObjectURL(blob);
+    setCapturedImageURL(imageURL);
+    capturedBlobRef.current = blob;
+  }, "image/jpeg");
+};
 
 
   const handleRunDetection = async () => {
@@ -77,18 +66,16 @@ const ObjectDetection: React.FC = () => {
       return;
     }
 
-    setLoading(true); // start loading
-
+    setLoading(true);
     const formData = new FormData();
     formData.append("file", capturedBlobRef.current, "capture.jpg");
 
     try {
-      // USE YOUR OWN BACKEND INSTEAD OF ROBOFLOW:
       const endpoint = "http://localhost:8000/detect/tool";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
-          Authorization: "Bearer dummy-token-for-demo" // update this
+          Authorization: "Bearer dummy-token-for-demo"
         },
         body: formData
       });
@@ -99,7 +86,7 @@ const ObjectDetection: React.FC = () => {
       console.error("Detection failed:", err);
     }
 
-    setLoading(false); // done
+    setLoading(false);
   };
 
   return (
@@ -132,9 +119,10 @@ const ObjectDetection: React.FC = () => {
             <p>🏗️ Site detection active — pulling live feed from ESP32.</p>
             <img
               ref={imageRef}
-              src={streamURL + "?t=" + new Date().getTime()}
+              src={streamURL}
               alt="ESP32 Stream"
               crossOrigin="anonymous"
+              onLoad={() => console.log("ESP32 image loaded")}
               style={{ width: '100%', maxHeight: '300px', borderRadius: '8px' }}
             />
 
@@ -163,34 +151,33 @@ const ObjectDetection: React.FC = () => {
 
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-        {detectionResults.length > 0 && (
-          <div style={{ marginTop: '1rem' }}>
-            <h3>Detected Tools:</h3>
-            <ul>
-              {detectionResults.map((item: any, index: number) => (
-                <li key={index}>
-                  <strong>{item.label}</strong> — {item.match ? '✅ Found in DB' : '❌ Not Found'}
-                  {item.match && (
-                    <ul>
-                      <li><strong>Name:</strong> {item.tool_info.name}</li>
-                      <li><strong>Category:</strong> {item.tool_info.category}</li>
-                      <li><strong>Safety:</strong> {item.tool_info.safety_level}</li>
-                      <li><strong>Maintenance:</strong> {item.tool_info.maintenance}</li>
-                      <li><strong>Instructions:</strong>
+            {detectionResults.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <h3>Detected Tools:</h3>
+                <ul>
+                  {detectionResults.map((item: any, index: number) => (
+                    <li key={index}>
+                      <strong>{item.label}</strong> — {item.match ? '✅ Found in DB' : '❌ Not Found'}
+                      {item.match && (
                         <ul>
-                          {item.tool_info.instructions.map((inst: string, i: number) => (
-                            <li key={i}>{inst}</li>
-                          ))}
+                          <li><strong>Name:</strong> {item.tool_info.name}</li>
+                          <li><strong>Category:</strong> {item.tool_info.category}</li>
+                          <li><strong>Safety:</strong> {item.tool_info.safety_level}</li>
+                          <li><strong>Maintenance:</strong> {item.tool_info.maintenance}</li>
+                          <li><strong>Instructions:</strong>
+                            <ul>
+                              {item.tool_info.instructions.map((inst: string, i: number) => (
+                                <li key={i}>{inst}</li>
+                              ))}
+                            </ul>
+                          </li>
                         </ul>
-                      </li>
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
