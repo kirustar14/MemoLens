@@ -1,17 +1,31 @@
 import { useNavigate } from 'react-router-dom';
 import { useContacts } from './ContactsContext';
-import './contacts.css';
+import './contacts.css'; // Ensure this path is correct
 
 export default function Contacts() {
   const { contacts, deleteContact } = useContacts();
   const navigate = useNavigate();
 
+  const goToDashboard = () => {
+    navigate('/'); // This will take you to the dashboard route
+  };
+
   return (
     <div className="contacts-container">
-      <div className="contacts-header">
-        <h2>Contacts</h2>
-        <button className="add-contact-btn" onClick={() => navigate('/contacts/add')}>Add Contact</button>
+      {/* New header structure for back arrow and title */}
+      <div className="contacts-page-header"> {/* Use a new class for specific styling */}
+        <button className="back-arrow" onClick={goToDashboard}>
+          ←
+        </button>
+        <h1 className="contacts-title">Contacts</h1> {/* Changed to h1 for semantic hierarchy and used a new class */}
       </div>
+
+      <div className="add-contact-button-container"> {/* Container for the Add Contact button */}
+        <button className="add-contact-btn" onClick={() => navigate('/contacts/add')}>
+          Add Contact
+        </button>
+      </div>
+
       <div className="contacts-list">
         {contacts.map(contact => (
           <div className="contact-card" key={contact.id}>
@@ -44,7 +58,7 @@ export default function Contacts() {
                 }}
                 aria-label="Delete"
                 className="delete-btn"
-              >🗑️</button>
+              ></button>
             </div>
           </div>
         ))}

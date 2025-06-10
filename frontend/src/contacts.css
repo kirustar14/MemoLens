@@ -1,3 +1,4 @@
+/* Existing .contacts-container remains */
 .contacts-container {
   max-width: 600px;
   margin: 48px auto;
@@ -5,22 +6,51 @@
   border-radius: 18px;
   padding: 36px 32px;
   box-shadow: 0 6px 32px rgba(0,0,0,0.10);
+  font-family: sans-serif; /* Added for consistency with settings */
 }
 
-.contacts-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 28px;
+/* NEW: Styles for the header containing back arrow and title */
+.contacts-page-header {
+  position: relative; /* Allows absolute positioning of children */
+  height: 40px; /* Gives space for arrow and title */
+  margin-bottom: 40px; /* Space between header and button/list */
+  text-align: center; /* Center the title */
 }
 
-.contacts-header h2 {
+/* Reusing back-arrow styles from Settings */
+.back-arrow {
+  position: absolute;
+  left: -50px; /* Adjust as needed to position outside the container */
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #111;
+}
+
+/* NEW: Styles for the Contacts title */
+.contacts-title {
   font-size: 2.2rem;
   font-weight: 800;
   color: #222;
   letter-spacing: 1px;
+  margin: 0; /* Remove default margin */
+  position: absolute; /* Position relative to .contacts-page-header */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%); /* Center horizontally and vertically */
 }
 
+/* NEW: Styles for the Add Contact button container */
+.add-contact-button-container {
+  display: flex;
+  justify-content: flex-end; /* Align button to the right */
+  margin-bottom: 28px; /* Space below button */
+}
+
+/* Existing add-contact-btn remains, adjust padding if needed */
 .add-contact-btn {
   background: linear-gradient(90deg, #009688, #26c6da);
   color: #fff;
@@ -37,6 +67,7 @@
   background: linear-gradient(90deg, #26c6da, #009688);
 }
 
+/* The rest of your contacts-list, contact-card, etc. styles remain unchanged */
 .contacts-list {
   display: flex;
   flex-direction: column;
