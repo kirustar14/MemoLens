@@ -80,7 +80,7 @@ const handleRunDetection = async () => {
       }
 
       try {
-        const response = await fetch("https://serverless.roboflow.com/construction-dataset-6xih3/2?api_key=eemZDg711SO5VE4BOnBp", {
+        const response = await fetch("https://serverless.roboflow.com/personal-protective-equipment-combined-model/4?api_key=eemZDg711SO5VE4BOnBp", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded"
