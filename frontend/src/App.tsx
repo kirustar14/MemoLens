@@ -17,13 +17,6 @@ import ObjectDetection from './ObjectDetection';
 import DetectionHistory from './DetectionHistory';
 import AddTool from './AddTool';
 
-// Add a type for user data
-interface UserData {
-  name: string;
-  email: string;
-  lastLogin?: Date;
-}
-
 export default function App() {
   const [contacts, setContacts] = useState<string[]>([]);
   const [name, setName] = useState('');
@@ -180,9 +173,6 @@ export default function App() {
             <Link to="/contacts" className="action-button">
               Manage Contacts
             </Link>
-            <Link to="/add-tool" className="action-button">
-              Add Tool
-            </Link>
           </div>
         </div>
       </div>
@@ -207,7 +197,6 @@ export default function App() {
             {/* New MemoLens Routes */}
             <Route path="/detection" element={<ObjectDetection />} />
             <Route path="/history" element={<DetectionHistory />} />
-            <Route path="/add-tool" element={<AddTool />} />
           </Routes>
         </BrowserRouter>
       </RemindersProvider>

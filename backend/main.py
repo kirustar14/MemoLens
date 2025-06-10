@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict
 from uuid import uuid4
 import os
-import shutil
 import uuid
 import json
 # import face_recognition  
@@ -15,11 +14,10 @@ import pickle
 from datetime import datetime
 import base64
 
-# size detection models 
+# models and stuff for computer vision 
 from ultralytics import YOLO
 import numpy as np
-import cv2
-
+import cv2 
 
 app = FastAPI()
 
@@ -41,6 +39,7 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 
 
 model = YOLO("yolov8n.pt")
+
 
 
 
@@ -287,20 +286,20 @@ def delete_contact(id: str, Authorization: str = Header("")):
     return {"message": "Contact deleted"}
 
 
-# size detection 
 
-@app.post("/detect/size")
-async def detect_size(file: UploadFile = File(...)):
-    
+
+
+
+@app.post("/detect/site")
+async def detect_site(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         nparr = np.frombuffer(contents, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is None:
-            raise ValueError("Failed to decode image. Image may be empty or corrupted.")
+            raise ValueError("Invalid image")
 
-        results = model(img)[0]  # YOLOv8 inference
-
+        results = model(img)[0]
         output = []
         for box in results.boxes:
             cls = int(box.cls[0])
@@ -314,74 +313,20 @@ async def detect_size(file: UploadFile = File(...)):
                 "label": label,
                 "confidence": round(conf, 2),
                 "bounding_box": {
-                    "x": round(x1),
-                    "y": round(y1),
-                    "width": round(width),
-                    "height": round(height)
+                    "x": round(x1), "y": round(y1),
+                    "width": round(width), "height": round(height)
                 }
             })
-
         return {"results": output}
-
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
-    
-
-
-    # tool manual 
-
-
-
-class ScannedTool(BaseModel):
-    id: str
-    user: str
-    name: str
-    label: str
-    category: str
-    safety_level: str
-    instructions: List[str]
-    maintenance: str
-    last_scanned: str
-    image: str
-
-scanned_tools_db: Dict[str, ScannedTool] = {}
-
-@app.post("/tools/scanned", response_model=ScannedTool)
-def add_scanned_tool(tool_data: dict, Authorization: str = Header("")):
-    token = Authorization.replace("Bearer ", "")
-    user = get_current_user(token)
-
-    tool_id = str(uuid4())
-    tool = ScannedTool(
-        id=tool_id,
-        user=user,
-        name=tool_data["name"],
-        label=tool_data.get("label", tool_data["name"]),
-        category=tool_data["category"],
-        safety_level=tool_data["safety_level"],
-        instructions=tool_data["instructions"],
-        maintenance=tool_data["maintenance"],
-        last_scanned=datetime.now().strftime("%Y-%m-%d"),
-        image=tool_data["image"]
-    )
-    scanned_tools_db[tool_id] = tool
-    return tool
-
-@app.get("/tools/scanned", response_model=List[ScannedTool])
-def get_scanned_tools(Authorization: str = Header("")):
-    token = Authorization.replace("Bearer ", "")
-    user = get_current_user(token)
-    return [tool for tool in scanned_tools_db.values() if tool.user == user]
 
 @app.post("/detect/tool")
 async def detect_tool(file: UploadFile = File(...), Authorization: str = Header("")):
     try:
-        token = Authorization.replace("Bearer ", "")
-        user = get_current_user(token)
-
+        user = Authorization.replace("Bearer ", "").replace("dummy-token-for-", "")
         contents = await file.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = cv2.imdecode(np.frombuffer(contents, np.uint8), cv2.IMREAD_COLOR)
         if img is None:
             raise ValueError("Failed to decode image")
 
@@ -391,27 +336,23 @@ async def detect_tool(file: UploadFile = File(...), Authorization: str = Header(
         for box in results.boxes:
             cls = int(box.cls[0])
             label = model.names[cls].lower()
-
-            matched_tool = None
-            for t in scanned_tools_db.values():
-                if t.user == user and label in t.label.lower():
-                    matched_tool = {
-                        "name": t.name,
-                        "category": t.category,
-                        "safety_level": t.safety_level,
-                        "instructions": t.instructions,
-                        "maintenance": t.maintenance,
-                        "image": t.image
-                    }
-                    break
-
             output.append({
-                "match": bool(matched_tool),
+                "match": False,
                 "label": label,
-                "tool_info": matched_tool or "Tool not in database"
+                "tool_info": {
+                    "name": label,
+                    "category": "Unknown",
+                    "safety_level": "Unknown",
+                    "instructions": ["No manual found"],
+                    "maintenance": "Unknown",
+                    "image": ""
+                }
             })
-
         return {"results": output}
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/camera/stream_url/")
+def get_camera_stream_url():
+    return {"stream_url": "http://100.65.13.57:81/stream"}
