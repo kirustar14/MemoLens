@@ -139,7 +139,7 @@ const ObjectDetection: React.FC = () => {
       </div>
 
       <div className="mode-buttons">
-        <button className={selectedMode === 'site' ? 'active' : ''} onClick={() => handleModeSelect('site')}>🏗️ Site Detection</button>
+        <button className={selectedMode === 'site' ? 'active' : ''} onClick={() => handleModeSelect('site')}>Site Detection</button>
         <button className={selectedMode === 'face' ? 'active' : ''} onClick={() => handleModeSelect('face')}>Face Detection</button>
       </div>
 
@@ -156,8 +156,8 @@ const ObjectDetection: React.FC = () => {
               style={{ width: '700px', maxHeight: '700px', borderRadius: '8px' }}
             />
             <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-              <button onClick={handleCaptureImage}>📸 Capture Image</button>
-              <button onClick={handleRunDetection}>🧠 Run Detection</button>
+              <button onClick={handleCaptureImage}>Capture Image</button>
+              <button onClick={handleRunDetection}>Run Detection</button>
               {loading && <p style={{ marginTop: '10px' }}>🔍 Running detection...</p>}
             </div>
           </>

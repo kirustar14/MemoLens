@@ -450,10 +450,11 @@ ul.contact-list {
 }
 
 .dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  justify-content: center;
   gap: 20px;
-}
+  flex-wrap: wrap;
+} 
 
 .section {
   background: white;

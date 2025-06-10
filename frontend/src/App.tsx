@@ -141,10 +141,6 @@ export default function App() {
           )}
         </div>
         <div className="header-right">
-          <div className="glasses-status">
-            <span className="status-dot connected"></span>
-            Smart Glasses Connected
-          </div>
           <Link to="/settings" className="settings-icon" aria-label="Settings">
             <div className="hamburger-menu">
               <span></span>
@@ -163,7 +159,7 @@ export default function App() {
             <Link to="/detection" className="action-button primary">
               Start Detection
             </Link>
-            <Link to="/contacts" className="action-button">
+            <Link to="/contacts" className="action-button primary">
               Manage Contacts
             </Link>
           </div>
