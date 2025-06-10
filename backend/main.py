@@ -9,7 +9,7 @@ from uuid import uuid4
 import os
 import uuid
 import json
-# import face_recognition  
+import face_recognition  
 import pickle
 from datetime import datetime
 import base64
@@ -57,23 +57,25 @@ def save_users(users):
 users = load_users()
 
 @app.post("/add_contact/")
-async def add_contact(name: str = Form(...), file: UploadFile = File(...)):
+async def add_contact(name: str = Form(...), project: str = Form(""), file: UploadFile = File(...)):
     contents = await file.read()
     img_path = f"{CONTACTS_DIR}/{name}_{uuid.uuid4().hex}.jpg"
 
     with open(img_path, "wb") as f:
         f.write(contents)
 
-    # image = face_recognition.load_image_file(img_path)
-    # encodings = face_recognition.face_encodings(image)
+    image = face_recognition.load_image_file(img_path)
+    encodings = face_recognition.face_encodings(image)
 
     if not encodings:
         os.remove(img_path)
         return JSONResponse(content={"error": "No face found in image"}, status_code=400)
 
     face_encoding = encodings[0]
+    metadata = {"project": project, "img_path": img_path}
+
     with open(f"{MODELS_DIR}/{name}.pkl", "wb") as f:
-        pickle.dump(face_encoding, f)
+        pickle.dump((face_encoding, metadata), f)
 
     return {"message": "Contact added successfully"}
 
@@ -92,7 +94,6 @@ async def recognize(file: UploadFile = File(...)):
 
     unknown_img = face_recognition.load_image_file(temp_file)
     unknown_encodings = face_recognition.face_encodings(unknown_img)
-
     os.remove(temp_file)
 
     if not unknown_encodings:
@@ -102,11 +103,15 @@ async def recognize(file: UploadFile = File(...)):
 
     for model_file in os.listdir(MODELS_DIR):
         with open(f"{MODELS_DIR}/{model_file}", "rb") as f:
-            known_encoding = pickle.load(f)
+            known_encoding, metadata = pickle.load(f)
 
         matches = face_recognition.compare_faces([known_encoding], unknown_encoding)
         if matches[0]:
-            return {"result": model_file.replace(".pkl", "")}
+            return {
+                "result": model_file.replace(".pkl", ""),
+                "project": metadata.get("project", ""),
+                "image": metadata.get("img_path", "")
+            }
 
     return {"result": "Unknown"}
 

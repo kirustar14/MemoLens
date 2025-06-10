@@ -5,17 +5,13 @@ import './App.css';
 import Login from './Login';
 import Signup from './Signup';
 import React from 'react';
-import Reminders from './reminders';
-import AddReminder from './AddReminder';
-import { RemindersProvider } from './RemindersContext';
 import Contacts from './Contacts';
 import ContactProfile from './ContactProfile';
-import AddEditContact from './AddEditContact';
+import AddEditContact from './RegisterWorker';
 import { ContactsProvider } from './ContactsContext';
 import Settings from './Settings';
 import ObjectDetection from './ObjectDetection';
-import DetectionHistory from './DetectionHistory';
-import AddTool from './AddTool';
+
 
 export default function App() {
   const [contacts, setContacts] = useState<string[]>([]);
@@ -167,9 +163,6 @@ export default function App() {
             <Link to="/detection" className="action-button primary">
               Start Detection
             </Link>
-            <Link to="/history" className="action-button secondary">
-              View History
-            </Link>
             <Link to="/contacts" className="action-button">
               Manage Contacts
             </Link>
@@ -181,14 +174,11 @@ export default function App() {
 
   return (
     <ContactsProvider>
-      <RemindersProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<FaceContactManager />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/add-reminder" element={<AddReminder />} />
-            <Route path="/reminders" element={<Reminders />} />
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/contacts/add" element={<AddEditContact />} />
             <Route path="/contacts/:id" element={<ContactProfile />} />
@@ -196,10 +186,8 @@ export default function App() {
             <Route path="/settings" element={<Settings />} />
             {/* New MemoLens Routes */}
             <Route path="/detection" element={<ObjectDetection />} />
-            <Route path="/history" element={<DetectionHistory />} />
           </Routes>
         </BrowserRouter>
-      </RemindersProvider>
     </ContactsProvider>
   );
 }
