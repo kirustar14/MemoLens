@@ -60,34 +60,54 @@ const handleCaptureImage = async () => {
 };
 
 
-  const handleRunDetection = async () => {
-    if (!capturedBlobRef.current) {
-      alert("Please capture an image first.");
-      return;
-    }
+const handleRunDetection = async () => {
+  if (!capturedBlobRef.current) {
+    alert("Please capture an image first.");
+    return;
+  }
 
-    setLoading(true);
-    const formData = new FormData();
-    formData.append("file", capturedBlobRef.current, "capture.jpg");
+  setLoading(true);
+  setDetectionResults([]); // clear old results
 
-    try {
-      const endpoint = "http://localhost:8000/detect/tool";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer dummy-token-for-demo"
-        },
-        body: formData
-      });
+  try {
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64data = reader.result?.toString().split(',')[1];
+      if (!base64data) {
+        alert("Failed to convert image.");
+        setLoading(false);
+        return;
+      }
 
-      const data = await response.json();
-      setDetectionResults(data.results || []);
-    } catch (err) {
-      console.error("Detection failed:", err);
-    }
+      try {
+        const response = await fetch("https://serverless.roboflow.com/construction-dataset-6xih3/2?api_key=eemZDg711SO5VE4BOnBp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          body: base64data
+        });
 
+        const data = await response.json();
+        console.log("Detection results:", data);
+        setDetectionResults(data.predictions || []);
+      } catch (fetchError) {
+        console.error("Fetch error:", fetchError);
+        alert("Failed to get detection results.");
+      }
+
+      setLoading(false);
+    };
+
+    reader.readAsDataURL(capturedBlobRef.current);
+  } catch (err) {
+    console.error("Detection failed:", err);
+    alert("Something went wrong during detection.");
     setLoading(false);
-  };
+  }
+};
+
+
 
   return (
     <div className="object-detection">
@@ -111,45 +131,45 @@ const handleCaptureImage = async () => {
         </button>
       </div>
 
-      <div className="detection-content">
-        {selectedMode === null && <p>Select a detection mode above to begin.</p>}
+        <div className="detection-content">
+          {selectedMode === null && <p>Select a detection mode above to begin.</p>}
 
-        {selectedMode === 'site' && (
-          <div>
-            <p>🏗️ Site detection active — pulling live feed from ESP32.</p>
-            <img
-              ref={imageRef}
-              src={streamURL}
-              alt="ESP32 Stream"
-              crossOrigin="anonymous"
-              onLoad={() => console.log("ESP32 image loaded")}
-              style={{ width: '100%', maxHeight: '300px', borderRadius: '8px' }}
-            />
+          {selectedMode === 'site' && (
+            <div>
+              <p>🏗️ Site detection active — pulling live feed from ESP32.</p>
+              <img
+                ref={imageRef}
+                src={streamURL}
+                alt="ESP32 Stream"
+                crossOrigin="anonymous"
+                onLoad={() => console.log("ESP32 image loaded")}
+                style={{ width: '700px', maxHeight: '700px', borderRadius: '8px' }}
+              />
 
 
-            <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-              <button onClick={handleCaptureImage}>📸 Capture Image</button>
-              <button onClick={handleRunDetection}>🧠 Run Detection</button>
-              {loading && <p style={{ marginTop: '10px' }}>🔍 Running detection...</p>}
-            </div>
-
-            {capturedImageURL && (
-              <div style={{ marginTop: '1rem' }}>
-                <h3>Captured Image:</h3>
-                <img
-                  src={capturedImageURL}
-                  alt="Captured"
-                  style={{
-                    width: '100%',
-                    maxHeight: '300px',
-                    borderRadius: '8px',
-                    border: '1px solid #ccc'
-                  }}
-                />
+              <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                <button onClick={handleCaptureImage}>📸 Capture Image</button>
+                <button onClick={handleRunDetection}>🧠 Run Detection</button>
+                {loading && <p style={{ marginTop: '10px' }}>🔍 Running detection...</p>}
               </div>
-            )}
 
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
+              {capturedImageURL && (
+                <div style={{ marginTop: '1rem' }}>
+                  <h3>Captured Image:</h3>
+                  <img
+                    src={capturedImageURL}
+                    alt="Captured"
+                    style={{
+                      width: '700px',
+                      maxHeight: '700px',
+                      borderRadius: '8px',
+                      border: '1px solid #ccc'
+                    }}
+                  />
+                </div>
+              )}
+
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
 
             {detectionResults.length > 0 && (
               <div style={{ marginTop: '1rem' }}>
@@ -157,29 +177,38 @@ const handleCaptureImage = async () => {
                 <ul>
                   {detectionResults.map((item: any, index: number) => (
                     <li key={index}>
-                      <strong>{item.label}</strong> — {item.match ? '✅ Found in DB' : '❌ Not Found'}
-                      {item.match && (
-                        <ul>
-                          <li><strong>Name:</strong> {item.tool_info.name}</li>
-                          <li><strong>Category:</strong> {item.tool_info.category}</li>
-                          <li><strong>Safety:</strong> {item.tool_info.safety_level}</li>
-                          <li><strong>Maintenance:</strong> {item.tool_info.maintenance}</li>
-                          <li><strong>Instructions:</strong>
-                            <ul>
-                              {item.tool_info.instructions.map((inst: string, i: number) => (
-                                <li key={i}>{inst}</li>
-                              ))}
-                            </ul>
-                          </li>
-                        </ul>
-                      )}
+                      <strong>{item.class}</strong> — Confidence: {Math.round(item.confidence * 100)}%
                     </li>
                   ))}
                 </ul>
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
+
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+  {loading && (
+    <p style={{ marginTop: '1rem' }}>🧠 Detecting tools, please wait...</p>
+  )}
+
+  {!loading && detectionResults.length === 0 && capturedImageURL && (
+    <p style={{ marginTop: '1rem', color: 'gray' }}>⚠️ No tools detected in the captured image.</p>
+  )}
+
+  {detectionResults.length > 0 && (
+    <div style={{ marginTop: '1rem' }}>
+      <h3>Detected Tools:</h3>
+      <ul>
+        {detectionResults.map((item: any, index: number) => (
+          <li key={index}>
+            <strong>{item.class}</strong> — Confidence: {Math.round(item.confidence * 100)}%
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+
 
         {selectedMode === 'face' && (
           <p>Face detection mode active — recognize workers and pull contact data.</p>
