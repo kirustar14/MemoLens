@@ -8,6 +8,7 @@ const ObjectDetection: React.FC = () => {
   const [streamURL, setStreamURL] = useState<string>('');
   const [capturedImageURL, setCapturedImageURL] = useState<string | null>(null);
   const [detectionResults, setDetectionResults] = useState<any[]>([]);
+  const [workerInfo, setWorkerInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -18,12 +19,13 @@ const ObjectDetection: React.FC = () => {
     setSelectedMode(mode);
     setCapturedImageURL(null);
     setDetectionResults([]);
+    setWorkerInfo(null);
 
-    if (mode === 'site') {
+    if (mode === 'site' || mode === 'face') {
       try {
         const res = await fetch('http://localhost:8000/camera/stream_url/');
         const data = await res.json();
-        setStreamURL(data.stream_url); // no ?t here
+        setStreamURL(data.stream_url);
       } catch (err) {
         alert('Failed to load ESP32 stream');
         console.error(err);
@@ -31,83 +33,65 @@ const ObjectDetection: React.FC = () => {
     }
   };
 
-const handleCaptureImage = async () => {
-  if (!imageRef.current || !canvasRef.current) return;
+  const handleCaptureImage = async () => {
+    if (!imageRef.current || !canvasRef.current) return;
 
-  const image = imageRef.current;
-  const canvas = canvasRef.current;
+    const image = imageRef.current;
+    const canvas = canvasRef.current;
 
-  if (!image.complete || image.naturalWidth === 0) {
-    alert("Image not loaded yet. Try again in a moment.");
-    return;
-  }
+    if (!image.complete || image.naturalWidth === 0) {
+      alert("Image not loaded yet. Try again in a moment.");
+      return;
+    }
 
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight;
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
 
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  // Draw the image to canvas
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const imageURL = URL.createObjectURL(blob);
-    setCapturedImageURL(imageURL);
-    capturedBlobRef.current = blob;
-  }, "image/jpeg");
-};
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const imageURL = URL.createObjectURL(blob);
+      setCapturedImageURL(imageURL);
+      capturedBlobRef.current = blob;
+    }, "image/jpeg");
+  };
 
+  const handleRunDetection = async () => {
+    if (!capturedBlobRef.current) {
+      alert("Please capture an image first.");
+      return;
+    }
 
-const handleRunDetection = async () => {
-  if (!capturedBlobRef.current) {
-    alert("Please capture an image first.");
-    return;
-  }
+    setLoading(true);
+    setDetectionResults([]);
+    setWorkerInfo(null);
 
-  setLoading(true);
-  setDetectionResults([]); // clear old results
+    try {
+      const formData = new FormData();
+      formData.append("file", capturedBlobRef.current);
 
-  try {
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64data = reader.result?.toString().split(',')[1];
-      if (!base64data) {
-        alert("Failed to convert image.");
-        setLoading(false);
-        return;
+      const response = await fetch("http://localhost:8000/recognize/", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.result === "Unknown" || data.result === "No face found") {
+        alert("Face not recognized.");
+      } else {
+        setWorkerInfo(data);
       }
+    } catch (err) {
+      console.error("Recognition failed", err);
+      alert("Recognition error");
+    }
 
-      try {
-        const response = await fetch("https://serverless.roboflow.com/personal-protective-equipment-combined-model/4?api_key=eemZDg711SO5VE4BOnBp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: base64data
-        });
-
-        const data = await response.json();
-        console.log("Detection results:", data);
-        setDetectionResults(data.predictions || []);
-      } catch (fetchError) {
-        console.error("Fetch error:", fetchError);
-        alert("Failed to get detection results.");
-      }
-
-      setLoading(false);
-    };
-
-    reader.readAsDataURL(capturedBlobRef.current);
-  } catch (err) {
-    console.error("Detection failed:", err);
-    alert("Something went wrong during detection.");
     setLoading(false);
-  }
-};
-
-
+  };
 
   return (
     <div className="object-detection">
@@ -131,47 +115,39 @@ const handleRunDetection = async () => {
         </button>
       </div>
 
-        <div className="detection-content">
-          {selectedMode === null && <p>Select a detection mode above to begin.</p>}
+      <div className="detection-content">
+        {selectedMode === null && <p>Select a detection mode above to begin.</p>}
 
-          {selectedMode === 'site' && (
-            <div>
-              <p>🏗️ Site detection active — pulling live feed from ESP32.</p>
-              <img
-                ref={imageRef}
-                src={streamURL}
-                alt="ESP32 Stream"
-                crossOrigin="anonymous"
-                onLoad={() => console.log("ESP32 image loaded")}
-                style={{ width: '700px', maxHeight: '700px', borderRadius: '8px' }}
-              />
+        {(selectedMode === 'site' || selectedMode === 'face') && (
+          <div>
+            <p>{selectedMode === 'site' ? '🏗️ Site detection active — pulling live feed from ESP32.' : '🧑‍🔧 Face detection mode active — recognize workers and pull contact data.'}</p>
+            <img
+              ref={imageRef}
+              src={streamURL}
+              alt="ESP32 Stream"
+              crossOrigin="anonymous"
+              style={{ width: '700px', maxHeight: '700px', borderRadius: '8px' }}
+            />
+            <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+              <button onClick={handleCaptureImage}>📸 Capture Image</button>
+              <button onClick={handleRunDetection}>🧠 Run Detection</button>
+              {loading && <p style={{ marginTop: '10px' }}>🔍 Detecting...</p>}
+            </div>
 
-
-              <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-                <button onClick={handleCaptureImage}>📸 Capture Image</button>
-                <button onClick={handleRunDetection}>🧠 Run Detection</button>
-                {loading && <p style={{ marginTop: '10px' }}>🔍 Running detection...</p>}
+            {capturedImageURL && (
+              <div style={{ marginTop: '1rem' }}>
+                <h3>Captured Image:</h3>
+                <img
+                  src={capturedImageURL}
+                  alt="Captured"
+                  style={{ width: '700px', maxHeight: '700px', borderRadius: '8px', border: '1px solid #ccc' }}
+                />
               </div>
+            )}
 
-              {capturedImageURL && (
-                <div style={{ marginTop: '1rem' }}>
-                  <h3>Captured Image:</h3>
-                  <img
-                    src={capturedImageURL}
-                    alt="Captured"
-                    style={{
-                      width: '700px',
-                      maxHeight: '700px',
-                      borderRadius: '8px',
-                      border: '1px solid #ccc'
-                    }}
-                  />
-                </div>
-              )}
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-            {detectionResults.length > 0 && (
+            {selectedMode === 'site' && detectionResults.length > 0 && (
               <div style={{ marginTop: '1rem' }}>
                 <h3>Detected Tools:</h3>
                 <ul>
@@ -183,35 +159,20 @@ const handleRunDetection = async () => {
                 </ul>
               </div>
             )}
-            </div>
-          )}
 
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
+            {selectedMode === 'face' && workerInfo && (
+              <div style={{ marginTop: '1rem' }}>
+                <h3>Recognized Worker</h3>
+                <p><strong>Name:</strong> {workerInfo.result}</p>
+                <p><strong>Project:</strong> {workerInfo.project}</p>
+                {workerInfo.image && <img src={`http://localhost:8000/${workerInfo.image}`} alt="Worker" style={{ maxWidth: '300px', borderRadius: '8px' }} />}
+              </div>
+            )}
 
-  {loading && (
-    <p style={{ marginTop: '1rem' }}>🧠 Detecting tools, please wait...</p>
-  )}
-
-  {!loading && detectionResults.length === 0 && capturedImageURL && (
-    <p style={{ marginTop: '1rem', color: 'gray' }}>⚠️ No tools detected in the captured image.</p>
-  )}
-
-  {detectionResults.length > 0 && (
-    <div style={{ marginTop: '1rem' }}>
-      <h3>Detected Tools:</h3>
-      <ul>
-        {detectionResults.map((item: any, index: number) => (
-          <li key={index}>
-            <strong>{item.class}</strong> — Confidence: {Math.round(item.confidence * 100)}%
-          </li>
-        ))}
-      </ul>
-    </div>
-  )}
-
-
-        {selectedMode === 'face' && (
-          <p>Face detection mode active — recognize workers and pull contact data.</p>
+            {!loading && selectedMode === 'face' && !workerInfo && capturedImageURL && (
+              <p style={{ marginTop: '1rem', color: 'gray' }}>⚠️ No worker recognized.</p>
+            )}
+          </div>
         )}
       </div>
     </div>
